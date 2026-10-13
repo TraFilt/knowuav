@@ -7,17 +7,31 @@ const fmtDate = d => new Date(d).toLocaleDateString('ar-SA-u-ca-gregory', {year:
 let player = null, quizTimer = null;
 
 // ---------------- boot ----------------
-sb.auth.onAuthStateChange(async (ev, session) => {
-  if(ev === 'PASSWORD_RECOVERY'){ S.session = session; show('reset'); return; }
-  if(ev === 'SIGNED_IN' && !S.user && session){ S.session = session; S.user = session.user; await loadUser(); route(); }
-  if(ev === 'SIGNED_OUT'){ location.href = '/'; }
+// NOTE: never await Supabase calls inside onAuthStateChange — it holds the auth lock and deadlocks. Defer with setTimeout.
+let loading = null;
+function start(session){
+  if(loading) return loading;
+  S.session = session; S.user = session.user;
+  loading = (async () => {
+    try { await loadUser(); }
+    catch(e){ console.error(e); toast('تعذّر تحميل بياناتك. حدّث الصفحة.', 1); }
+    $('#boot').hidden = true; route();
+  })();
+  return loading;
+}
+sb.auth.onAuthStateChange((ev, session) => {
+  setTimeout(() => {
+    if(ev === 'PASSWORD_RECOVERY'){ S.session = session; $('#boot').hidden = true; show('reset'); return; }
+    if((ev === 'SIGNED_IN' || ev === 'INITIAL_SESSION') && session && !location.hash.includes('type=recovery')) start(session);
+    if(ev === 'SIGNED_OUT' && S.user){ location.href = '/'; }
+  }, 0);
 });
 (async function boot(){
-  const { data } = await sb.auth.getSession();
-  $('#boot').hidden = true;
-  if(!data.session){ showAuth(location.hash === '#login' ? 'in' : 'up'); return; }
-  S.session = data.session; S.user = data.session.user;
-  await loadUser(); route();
+  let session = null;
+  try { const { data } = await Promise.race([sb.auth.getSession(), new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 8000))]); session = data.session; }
+  catch(e){ console.error(e); }
+  if(!session){ $('#boot').hidden = true; if(!S.user) showAuth(location.hash === '#login' ? 'in' : 'up'); return; }
+  start(session);
 })();
 addEventListener('hashchange', () => { if(S.user) route(); else showAuth(location.hash === '#login' ? 'in' : 'up'); });
 

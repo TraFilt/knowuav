@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Know UAV · حسابي</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0c110e">
+<link rel="icon" href="/assets/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@500;700&family=Readex+Pro:wght@300;400;600&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="/assets/base.css">
+<link rel="stylesheet" href="/assets/app.css">
+</head>
+<body>
+<header class="bar"><div class="wrap">
+  <a class="brand" href="/"><img src="/assets/logo.png" alt="Know UAV" width="64" height="30"></a>
+  <nav class="nav" id="nav" hidden>
+    <a href="#home" data-r="home">الدروس</a>
+    <a href="#sim" data-r="sim">المحاكي</a>
+    <a href="#glossary" data-r="glossary">المصطلحات</a>
+    <a href="#account" data-r="account">حسابي</a>
+    <a href="/admin" id="nav-admin" hidden>لوحة التحكم</a>
+  </nav>
+</div></header>
+
+<main class="wrap app">
+  <div class="loading" id="boot">جارٍ التحميل…</div>
+
+  <!-- AUTH -->
+  <section class="view" id="v-auth" hidden>
+    <div class="auth">
+      <h1 id="au-title">أنشئ حسابك</h1>
+      <p class="sub" id="au-sub">دقيقة واحدة وتبدأ. الدرس الأول مجاني.</p>
+      <div class="card">
+        <div class="tabs"><button id="tab-up" class="on">حساب جديد</button><button id="tab-in">تسجيل دخول</button></div>
+        <button class="btn gbtn block" id="g-btn"><svg viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>المتابعة بحساب قوقل</button>
+        <div class="or">أو بالبريد</div>
+        <form id="au-form" class="card" style="padding:0;border:0;background:none;display:grid;gap:12px" novalidate>
+          <label class="field" id="f-name">الاسم<input id="au-name" autocomplete="name" placeholder="اسمك"></label>
+          <label class="field">البريد الإلكتروني<input id="au-email" type="email" autocomplete="email" dir="ltr" required></label>
+          <label class="field">كلمة المرور<input id="au-pass" type="password" autocomplete="new-password" dir="ltr" minlength="6" required placeholder="٦ أحرف على الأقل"></label>
+          <div class="err" id="au-err"></div>
+          <button class="btn pri block" id="au-go" type="submit">إنشاء الحساب</button>
+          <button type="button" class="linkbtn" id="au-forgot" hidden>نسيت كلمة المرور؟</button>
+        </form>
+      </div>
+      <p class="note" style="text-align:center">بإنشاء الحساب أنت توافق على <a href="/terms">الشروط</a> و<a href="/privacy">سياسة الخصوصية</a>.</p>
+    </div>
+  </section>
+
+  <!-- RESET PASSWORD -->
+  <section class="view" id="v-reset" hidden>
+    <div class="auth"><h1>كلمة مرور جديدة</h1>
+      <form class="card" id="rs-form"><label class="field">كلمة المرور الجديدة<input id="rs-pass" type="password" dir="ltr" minlength="6" autocomplete="new-password"></label><div class="err" id="rs-err"></div><button class="btn pri block" type="submit">حفظ</button></form>
+    </div>
+  </section>
+
+  <section class="view" id="v-home" hidden></section>
+  <section class="view" id="v-lesson" hidden></section>
+  <section class="view" id="v-final" hidden></section>
+  <section class="view" id="v-pay" hidden></section>
+  <section class="view" id="v-account" hidden></section>
+  <section class="view" id="v-glossary" hidden></section>
+
+  <!-- SIMULATOR -->
+  <section class="view" id="v-sim" hidden>
+    <div class="sec-h"><div><div class="eyebrow">Flight Trainer</div><h2>محاكي الطيران</h2><p>لوحة المفاتيح، أو يد بلايستيشن وإكس بوكس، أو اللمس على الجوال.</p></div></div>
+    <div id="sim-lock" hidden></div>
+    <div id="sim-wrap">
+    <div class="simgrid">
+      <div class="bay" id="simbay">
+        <div class="hud">
+          <div class="tl"><span>ALT <b id="h-alt">0.0</b> m</span><span>SPD <b id="h-spd">0.0</b> m/s</span><span>V/S <b id="h-vs">0.0</b></span></div>
+          <div class="tr"><span>BAT <b id="h-bat">100</b>%</span><div class="batbar"><i id="h-batbar" style="width:100%"></i></div><span>T <b id="h-t">00:00</b></span><span>HOME <b id="h-home">0</b> m</span></div>
+          <div class="obj" id="h-obj">اختر مهمة من القائمة<small id="h-objst"></small></div>
+          <svg class="horizon" viewBox="-70 -70 140 140" aria-hidden="true"><g id="h-hzg"><line x1="-60" y1="0" x2="-18" y2="0" stroke="#f2ead2" stroke-width="2"/><line x1="18" y1="0" x2="60" y2="0" stroke="#f2ead2" stroke-width="2"/></g><path d="M-12 0 L-4 0 L0 6 L4 0 L12 0" fill="none" stroke="#d8bf86" stroke-width="2"/></svg>
+          <div class="bot"><div class="ministick"><i id="h-sl"></i></div><span class="armst" id="h-arm">غير مسلّحة</span><div class="ministick"><i id="h-sr"></i></div></div>
+        </div>
+        <div class="over" id="over" hidden><div class="box" id="overbox"></div></div>
+      </div>
+      <aside class="panel">
+        <h3>المهام</h3>
+        <div class="mlist" id="mlist"></div>
+        <div class="ctrl"><h3>الإعدادات</h3>
+          <label for="s-level">مستوى المساعدة<select id="s-level"><option value="0">مبتدئ</option><option value="1" selected>متوسط</option><option value="2">متقدم</option></select></label>
+          <label for="s-mode">وضع العصي<select id="s-mode"><option value="2" selected>Mode 2</option><option value="1">Mode 1</option></select></label>
+          <label for="s-cam">الكاميرا<select id="s-cam"><option value="chase">مطاردة</option><option value="pilot">منظور الطيار</option><option value="fpv">FPV</option></select></label>
+          <label for="s-touch">تحكم باللمس<select id="s-touch"><option value="auto">تلقائي</option><option value="on">تشغيل</option><option value="off">إيقاف</option></select></label>
+        </div>
+        <div class="pad-st" id="padst">لم تُوصل يد تحكم. وصّلها واضغط أي زر.</div>
+        <div class="keys" id="keys"></div>
+      </aside>
+    </div>
+    <div class="simnotes">
+      <div class="card"><h3>يد بلايستيشن / إكس بوكس</h3><p>وصّلها بالكمبيوتر بـ USB أو بلوتوث ثم اضغط أي زر. ✕/A للتسليح، □/X للكاميرا، △/Y لإعادة المهمة.</p></div>
+      <div class="card"><h3>الجوال</h3><p>تظهر عصاتان على الشاشة تلقائياً. أدر الجوال بالعرض لمساحة أكبر.</p></div>
+      <div class="card"><h3>نصيحة</h3><p>ابدأ بمستوى «مبتدئ» وكاميرا «مطاردة»، ثم جرّب «منظور الطيار» لأنه الأقرب للواقع.</p></div>
+    </div>
+    </div>
+  </section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="/assets/config.js"></script>
+<script src="/assets/common.js"></script>
+<script src="/assets/widgets.js"></script>
+<script src="/assets/motion.js"></script>
+<script src="/assets/sim.js"></script>
+<script src="/assets/app.js"></script>
+</body>
+</html>

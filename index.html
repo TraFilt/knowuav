@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Know UAV</title>
+<meta name="description" content="تعلّم تشغيل الطائرات بدون طيار من الصفر: دروس موشن جرافيك بتعليق صوتي، اختبار بعد كل درس، ومحاكي طيران يعمل بيد البلايستيشن والإكس بوكس.">
+<meta property="og:title" content="Know UAV">
+<meta property="og:description" content="دروس الدرون بالعربي ومحاكي طيران. اشتراك سنة كاملة بـ ٢٥ ريال.">
+<meta name="theme-color" content="#0c110e">
+<link rel="icon" href="/assets/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@500;700&family=Readex+Pro:wght@300;400;600&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="/assets/base.css">
+<style>
+.hero{position:relative;display:grid;grid-template-columns:1fr 1.05fr;gap:24px;align-items:center;padding-block:28px 40px}
+.hero h1{font-size:clamp(36px,5.6vw,64px)}
+.hero h1 em{font-style:normal;color:var(--sand)}
+.hero .lead{font-size:18px;color:var(--muted);max-width:48ch;margin:18px 0 26px}
+.bay{position:relative;aspect-ratio:1/0.86;max-width:100%;border-radius:20px;overflow:hidden;border:1px solid var(--line2);background:radial-gradient(120% 90% at 50% 100%,#222c22 0,#121813 55%,#0c110e 100%);cursor:crosshair;touch-action:none}
+.bay canvas{display:block;width:100%;height:100%}
+.bay .hud{position:absolute;inset:auto 12px 12px 12px;display:flex;justify-content:space-between;gap:8px;font-family:var(--f-mono);font-size:12px;color:#f2ead2;pointer-events:none;direction:ltr}
+.bay .hud span{background:#0b100dcc;border:1px solid #ffffff1a;padding:5px 10px;border-radius:8px}
+.bay .hud b{color:var(--sand);font-weight:600}
+.bay .hint{position:absolute;top:12px;right:12px;font-size:13px;background:#0b100dcc;border:1px solid #ffffff1a;padding:5px 12px;border-radius:999px;color:var(--muted);pointer-events:none;transition:opacity .4s}
+.trust{display:flex;gap:18px;flex-wrap:wrap;color:var(--muted);font-size:14px;margin-top:22px}
+.trust b{color:var(--text);font-family:var(--f-mono);font-weight:600}
+
+section.blk{padding-block:56px 8px}
+.sec-h{display:flex;align-items:end;justify-content:space-between;gap:16px;margin-bottom:22px;flex-wrap:wrap}
+.sec-h h2{font-size:clamp(26px,3.4vw,36px)}
+.sec-h p{margin:6px 0 0;color:var(--muted);max-width:60ch}
+
+.feat{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.feat .card{display:flex;flex-direction:column;gap:10px}
+.feat svg{width:44px;height:44px}
+.feat h3{font-size:19px}
+.feat p{margin:0;color:var(--muted);font-size:15px}
+
+.lvls{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.lvl{background:var(--panel);padding:20px;display:flex;flex-direction:column;gap:8px}
+.lvl .n{font-family:var(--f-mono);font-size:34px;color:var(--sand);line-height:1}
+.lvl h3{font-size:19px}
+.lvl ul{margin:0;padding:0;list-style:none;font-size:14px;color:var(--muted);display:grid;gap:3px}
+.lvl li::before{content:"— ";color:var(--faint)}
+
+.simtease{display:grid;grid-template-columns:1.1fr .9fr;gap:24px;align-items:center}
+.pads{display:flex;gap:10px;flex-wrap:wrap}
+.pad{display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-size:14px}
+.pad svg{width:22px;height:22px}
+.mission-strip{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-top:16px}
+.mission-strip span{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 12px;font-size:14px}
+
+.price{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:stretch}
+.plan{background:linear-gradient(160deg,#1e271c 0,var(--panel) 60%);border:1px solid var(--sand-dim);border-radius:18px;padding:28px;display:flex;flex-direction:column;gap:14px}
+.plan .amt{font-family:var(--f-mono);font-size:64px;color:var(--sand);font-weight:600;line-height:1}
+.plan .amt small{font-size:16px;color:var(--muted);font-family:var(--f-body);font-weight:300}
+.plan ul{margin:0;padding:0;list-style:none;display:grid;gap:8px}
+.plan li{display:flex;gap:10px}
+.plan li::before{content:"";flex:none;width:8px;height:8px;margin-top:10px;background:var(--sand);transform:rotate(45deg)}
+.steps{display:grid;gap:10px;align-content:start}
+.step{display:grid;grid-template-columns:40px 1fr;gap:14px;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px}
+.step b.k{width:40px;height:40px;border-radius:50%;border:1px solid var(--sand-dim);display:grid;place-items:center;font-family:var(--f-mono);color:var(--sand)}
+.step h3{font-size:17px;font-family:var(--f-body);font-weight:600}
+.step p{margin:2px 0 0;color:var(--muted);font-size:14px}
+
+.faq{display:grid;gap:8px;max-width:820px}
+.faq details{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px 18px}
+.faq summary{cursor:pointer;font-weight:400;list-style:none;display:flex;justify-content:space-between;gap:12px}
+.faq summary::after{content:"+";font-family:var(--f-mono);color:var(--sand)}
+.faq details[open] summary::after{content:"−"}
+.faq p{margin:10px 0 0;color:var(--muted)}
+
+.cta-final{text-align:center;padding:48px 20px;border:1px solid var(--line);border-radius:20px;background:radial-gradient(80% 120% at 50% 0,#1f2a1f 0,var(--panel) 70%);margin-top:56px}
+.cta-final h2{font-size:clamp(26px,3.6vw,40px);margin-bottom:10px}
+.cta-final p{color:var(--muted);margin:0 0 20px}
+
+@media (max-width:960px){.hero,.simtease,.price{grid-template-columns:1fr}.feat,.lvls{grid-template-columns:1fr 1fr}}
+@media (max-width:560px){.feat,.lvls{grid-template-columns:1fr}.nav a.hide-sm{display:none}}
+</style>
+</head>
+<body>
+<header class="bar"><div class="wrap">
+  <a class="brand" href="/"><img src="/assets/logo.png" alt="Know UAV" width="64" height="30"></a>
+  <nav class="nav">
+    <a class="hide-sm" href="#what">ماذا ستتعلم</a>
+    <a class="hide-sm" href="#price">الاشتراك</a>
+    <a class="hide-sm" href="#faq">أسئلة</a>
+    <a href="/app#login" id="nav-login">دخول</a>
+    <a class="btn pri sm" href="/app#signup" id="nav-cta">ابدأ الآن</a>
+  </nav>
+</div></header>
+
+<main class="wrap">
+  <section class="hero">
+    <div>
+      <div class="eyebrow">دروس الدرون بالعربي · محاكي طيران</div>
+      <h1>تعلّم تطيّر الدرون <em>صح</em>، من أول درس.</h1>
+      <p class="lead">دروس قصيرة بموشن جرافيك وتعليق صوتي سعودي، واختبار بعد كل درس، ومحاكي طيران على الكمبيوتر يشتغل بيد البلايستيشن والإكس بوكس وعلى الجوال باللمس.</p>
+      <div class="row"><a class="btn pri" href="/app#signup">أنشئ حسابك</a><a class="btn" href="#price">اشتراك سنة بـ ٢٥ ريال</a></div>
+      <div class="trust"><span><b>١٨</b> درساً</span><span><b>٤</b> مستويات</span><span><b>٧</b> مهام محاكاة</span><span><b>٣٥</b> مصطلحاً</span></div>
+    </div>
+    <div class="bay" id="bay" aria-label="درون تفاعلي يتبع المؤشر">
+      <span class="hint" id="hint">حرّك المؤشر، والدرون يلحقك. اضغط ليسوي قلبة.</span>
+      <div class="hud"><span>ALT <b id="h-alt">0.0</b> m</span><span>SPD <b id="h-spd">0.0</b> m/s</span><span>BAT <b id="h-bat">100</b>%</span></div>
+    </div>
+  </section>
+
+  <section class="blk" id="what">
+    <div class="sec-h"><div><h2>كل درس فيه ثلاث طبقات</h2><p>تشوف الفكرة بفيديو قصير، وتجربها بيدك، وتختبر نفسك قبل ما تنتقل.</p></div></div>
+    <div class="feat">
+      <div class="card"><svg viewBox="0 0 44 44" fill="none" stroke="#d8bf86" stroke-width="1.6"><rect x="4" y="9" width="36" height="24" rx="4"/><path d="M19 16l8 5-8 5z" fill="#d8bf86"/><path d="M12 38h20"/></svg><h3>موشن جرافيك بصوت سعودي</h3><p>كل درس يبدأ بمقطع متحرك يشرح الفكرة بلهجة بيضاء واضحة، مع ترجمة على الشاشة.</p></div>
+      <div class="card"><svg viewBox="0 0 44 44" fill="none" stroke="#d8bf86" stroke-width="1.6"><circle cx="22" cy="22" r="17"/><path d="M15 22l5 5 9-10"/></svg><h3>اختبار بعد كل درس</h3><p>أسئلة قصيرة مع شرح للإجابة الصحيحة. تقدّمك يُحفظ في حسابك على أي جهاز.</p></div>
+      <div class="card"><svg viewBox="0 0 44 44" fill="none" stroke="#d8bf86" stroke-width="1.6"><path d="M8 28c0-8 4-12 14-12s14 4 14 12c0 4-3 6-6 4l-3-3H17l-3 3c-3 2-6 0-6-4z"/><circle cx="15" cy="23" r="2"/><circle cx="29" cy="23" r="2"/></svg><h3>محاكي بثلاثة أبعاد</h3><p>سبع مهام من التحويم إلى العودة ببطارية منخفضة. لوحة مفاتيح أو يد تحكم أو لمس.</p></div>
+      <div class="card"><svg viewBox="0 0 44 44" fill="none" stroke="#d8bf86" stroke-width="1.6"><rect x="7" y="6" width="22" height="30" rx="3"/><rect x="15" y="10" width="22" height="30" rx="3" fill="#131a15"/><path d="M20 20h12M20 26h8"/></svg><h3>مصطلحات وأبجدية صوتية</h3><p>المصطلحات الإنجليزية اللي بتسمعها في أي دورة طيران، مع بطاقات مراجعة.</p></div>
+    </div>
+  </section>
+
+  <section class="blk">
+    <div class="sec-h"><div><h2>أربعة مستويات، وأنت تختار من وين تبدأ</h2><p>كل المحتوى مفتوح للمشترك. ابدأ من الأساسيات أو اقفز مباشرة للمستوى اللي تحتاجه.</p></div></div>
+    <div class="lvls">
+      <div class="lvl"><span class="n">01</span><h3>الأساسيات والسلامة</h3><ul><li>منظومة UAS</li><li>كيف تطير الرباعية</li><li>المكوّنات والبطاريات</li><li>الفحص قبل الإقلاع</li></ul></div>
+      <div class="lvl"><span class="n">02</span><h3>التحكم والمحاكاة</h3><ul><li>Mode 1 و Mode 2</li><li>أوضاع الطيران</li><li>التدريب في المحاكي</li><li>قراءة شاشة البيانات</li></ul></div>
+      <div class="lvl"><span class="n">03</span><h3>الطيران الميداني</h3><ul><li>الإقلاع والتحويم</li><li>المربع والدائرة ورقم ٨</li><li>الهبوط الدقيق</li><li>الرياح والطقس</li></ul></div>
+      <div class="lvl"><span class="n">04</span><h3>المهام والطوارئ</h3><ul><li>تخطيط المهمة</li><li>إجراءات الطوارئ</li><li>الاتصال اللاسلكي</li><li>التقييم العملي</li></ul></div>
+    </div>
+  </section>
+
+  <section class="blk">
+    <div class="simtease">
+      <div>
+        <div class="eyebrow">Flight Trainer</div>
+        <h2 style="font-size:clamp(26px,3.4vw,36px);margin:6px 0 10px">وصّل يدك وطِر</h2>
+        <p style="color:var(--muted);margin:0 0 16px;max-width:52ch">المحاكي يتعرّف على يد البلايستيشن والإكس بوكس تلقائياً، ويدعم Mode 1 و Mode 2، وثلاث كاميرات منها منظور الطيار من الأرض. أفضل أوقاتك تنحفظ في حسابك.</p>
+        <div class="pads">
+          <span class="pad"><svg viewBox="0 0 24 24" fill="none" stroke="#d8bf86" stroke-width="1.5"><path d="M4 15c0-5 3-7 8-7s8 2 8 7c0 2-2 3-3 2l-2-2H9l-2 2c-1 1-3 0-3-2z"/></svg>PlayStation</span>
+          <span class="pad"><svg viewBox="0 0 24 24" fill="none" stroke="#d8bf86" stroke-width="1.5"><path d="M4 15c0-5 3-7 8-7s8 2 8 7c0 2-2 3-3 2l-2-2H9l-2 2c-1 1-3 0-3-2z"/></svg>Xbox</span>
+          <span class="pad"><svg viewBox="0 0 24 24" fill="none" stroke="#d8bf86" stroke-width="1.5"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10h2M11 10h2M15 10h2M8 14h8"/></svg>لوحة المفاتيح</span>
+          <span class="pad"><svg viewBox="0 0 24 24" fill="none" stroke="#d8bf86" stroke-width="1.5"><rect x="7" y="3" width="10" height="18" rx="2"/><path d="M11 18h2"/></svg>الجوال باللمس</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="eyebrow">المهام</div>
+        <div class="mission-strip"><span>طيران حر</span><span>الإقلاع والتحويم</span><span>المربع</span><span>البوابات</span><span>الهبوط الدقيق</span><span>تحويم مع رياح</span><span>العودة ببطارية منخفضة</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="blk" id="price">
+    <div class="sec-h"><div><h2>اشتراك واحد، كل شي مفتوح</h2><p>بدون تجديد تلقائي. تحوّل، ترفع الإيصال، ويتفعّل حسابك فوراً.</p></div></div>
+    <div class="price">
+      <div class="plan">
+        <div class="eyebrow">اشتراك سنة كاملة</div>
+        <div class="amt">٢٥ <small>ريال · لمدة ٣٦٥ يوماً</small></div>
+        <ul><li>كل الدروس في المستويات الأربعة</li><li>مقاطع الموشن جرافيك بالتعليق الصوتي</li><li>اختبار بعد كل درس واختبار شامل</li><li>المحاكي بكل مهامه وحفظ أفضل أوقاتك</li><li>قسم المصطلحات والأبجدية الصوتية</li></ul>
+        <a class="btn pri block" href="/app#signup">اشترك الآن</a>
+        <span class="note">بالاشتراك أنت توافق على <a href="/terms">الشروط</a> و<a href="/refund">سياسة الاسترجاع</a>.</span>
+      </div>
+      <div class="steps">
+        <div class="step"><b class="k">١</b><div><h3>أنشئ حسابك</h3><p>بحساب قوقل بضغطة، أو ببريدك وكلمة مرور.</p></div></div>
+        <div class="step"><b class="k">٢</b><div><h3>حوّل ٢٥ ريال</h3><p>تظهر لك بيانات التحويل داخل حسابك.</p></div></div>
+        <div class="step"><b class="k">٣</b><div><h3>ارفع الإيصال</h3><p>صورة أو ملف PDF، ويتفعّل اشتراكك مباشرة بدون انتظار.</p></div></div>
+        <div class="step"><b class="k">٤</b><div><h3>ابدأ التعلّم</h3><p>كل الدروس والمحاكي مفتوحة لك سنة كاملة.</p></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="blk" id="faq">
+    <div class="sec-h"><div><h2>أسئلة شائعة</h2></div></div>
+    <div class="faq">
+      <details><summary>ما عندي أي خبرة بالدرون، يناسبني؟</summary><p>نعم. المستوى الأول يبدأ من الصفر: وش هي المنظومة، وكيف تطير الطيارة، وكيف تتعامل مع البطارية.</p></details>
+      <details><summary>هل أحتاج جهاز تحكم أو درون؟</summary><p>لا. المحاكي يشتغل بلوحة المفاتيح، ولو عندك يد بلايستيشن أو إكس بوكس تقدر توصلها بالكمبيوتر. وعلى الجوال تتحكم باللمس.</p></details>
+      <details><summary>كم يستغرق تفعيل الاشتراك؟</summary><p>فوراً. بمجرد ما ترفع إيصال التحويل يتفعّل حسابك. نراجع الإيصالات بعدها، والإيصال غير الصحيح يؤدي لإيقاف الحساب.</p></details>
+      <details><summary>هل الاشتراك يتجدد تلقائياً؟</summary><p>لا. الاشتراك دفعة واحدة لمدة سنة، وإذا حبيت تجدد بعدها ترفع إيصالاً جديداً.</p></details>
+      <details><summary>أقدر أدخل من أكثر من جهاز؟</summary><p>نعم، حسابك وتقدّمك محفوظ ويظهر على أي جهاز تسجّل منه.</p></details>
+      <details><summary>هل الموقع تابع لجهة رسمية؟</summary><p>لا. Know UAV منصة تعليمية مستقلة، ومحتواها تعليمي عام.</p></details>
+    </div>
+  </section>
+
+  <section class="cta-final">
+    <h2>الدرس الأول مجاني بعد التسجيل</h2>
+    <p>سجّل الآن، شوف أول درس، وقرر بعدها.</p>
+    <a class="btn pri" href="/app#signup">أنشئ حسابك</a>
+  </section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="/assets/config.js"></script>
+<script src="/assets/common.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="/assets/drone-model.js"></script>
+<script src="/assets/hero-drone.js"></script>
+<script>
+renderFooter();
+sb.auth.getSession().then(({data})=>{ if(data.session){ $('#nav-login').hidden=true; const c=$('#nav-cta'); c.textContent='حسابي'; c.href='/app'; } });
+</script>
+</body>
+</html>

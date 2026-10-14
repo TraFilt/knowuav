@@ -53,6 +53,7 @@ async function loadUser(){
   S.progress = Object.fromEntries((pr.data || []).map(r => [r.lesson_id, r]));
   window.SIM_BEST = Object.fromEntries((ss.data || []).map(r => [r.mission, r.best_time]));
   $('#nav-admin').hidden = !S.profile.is_admin;
+  navAvatar();
   if(cat.error) console.error(cat.error);
 }
 async function refreshProfile(){ const { data } = await sb.from('profiles').select('*').eq('id', S.user.id).maybeSingle(); if(data) S.profile = data; }
@@ -60,7 +61,51 @@ async function refreshProfile(){ const { data } = await sb.from('profiles').sele
 window.onSimBest = async (mission, t) => {
   if(!S.user) return;
   await sb.from('sim_scores').upsert({ user_id: S.user.id, mission, best_time: t, updated_at: new Date().toISOString() });
+  const rows = await loadBoard(mission);
+  const me = rows && rows.find(r => r.is_me);
+  const box = document.getElementById('overbox');
+  if(me && box && !$('#over').hidden && !box.querySelector('.rankline'))
+    box.querySelector('h3')?.insertAdjacentHTML('afterend', `<p class="rankline">🏆 ترتيبك <b>#${AR(me.rank)}</b> من ${AR(me.total)} طيّار${me.rank <= 3 ? ' · ممتاز!' : ''}</p>`);
 };
+
+// ---------------- leaderboard + avatars ----------------
+const MNAME = { hover:'الإقلاع والتحويم', box:'المربع', gates:'البوابات', land:'الهبوط الدقيق', wind:'تحويم مع رياح', rth:'العودة ببطارية منخفضة' };
+function avatar(url, name, size = 36){
+  const n = String(name || '؟').trim().charAt(0) || '؟';
+  return url ? `<img class="ava" src="${esc(url)}" alt="" width="${size}" height="${size}" style="width:${size}px;height:${size}px" loading="lazy">`
+             : `<span class="ava ph" style="width:${size}px;height:${size}px;font-size:${Math.round(size*.45)}px">${esc(n)}</span>`;
+}
+function navAvatar(){
+  const a = document.querySelector('#nav a[data-r="account"]'); if(!a || !S.profile) return;
+  a.innerHTML = `${avatar(S.profile.avatar_url, S.profile.full_name || S.user?.email, 22)}<span>حسابي</span>`; a.classList.add('nav-me');
+}
+let boardMission = null, boardSeq = 0;
+async function loadBoard(mission){
+  boardMission = mission; const el = document.getElementById('board'); const seq = ++boardSeq;
+  if(!el) return null;
+  if(!MNAME[mission]){ el.innerHTML = '<p class="note">الطيران الحر بدون ترتيب. اختر مهمة لتشوف لوحة الصدارة.</p>'; return null; }
+  el.innerHTML = '<p class="note">جارٍ التحميل…</p>';
+  const { data, error } = await sb.rpc('sim_leaderboard', { p_mission: mission, p_limit: 10 });
+  if(seq !== boardSeq) return data;
+  if(error){ el.innerHTML = '<p class="note">لوحة الصدارة غير متاحة الآن.</p>'; return null; }
+  if(!data || !data.length){ el.innerHTML = `<p class="note">ما أحد أنجز «${MNAME[mission]}» للحين. كن الأول! 🥇</p>`; return data; }
+  const medal = r => r === 1 ? '🥇' : r === 2 ? '🥈' : r === 3 ? '🥉' : AR(r);
+  el.innerHTML = `<ol class="lb">${data.map(r => `<li class="${r.is_me ? 'me' : ''}${r.rank > 10 ? ' gap' : ''}"><span class="rk">${medal(Number(r.rank))}</span>${avatar(r.avatar_url, r.name, 30)}<span class="nm">${esc(r.name)}${r.is_me ? ' <small>(أنت)</small>' : ''}</span><span class="tm">${Number(r.best_time).toFixed(1)} ث</span></li>`).join('')}</ol>
+    <p class="note lbn">${AR(data[0].total)} طيّار في هذي المهمة${S.profile && !S.profile.avatar_url ? ' · <a href="#account">أضف صورتك</a>' : ''}</p>`;
+  return data;
+}
+window.onSimMission = id => { if(document.getElementById('board')) loadBoard(id); };
+async function squareImage(file, size = 256){
+  const url = URL.createObjectURL(file);
+  try{
+    const img = await new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = no; i.src = url; });
+    const s = Math.min(img.naturalWidth, img.naturalHeight), c = document.createElement('canvas'); c.width = c.height = size;
+    c.getContext('2d').drawImage(img, (img.naturalWidth - s) / 2, (img.naturalHeight - s) / 2, s, s, 0, 0, size, size);
+    let blob = await new Promise(r => c.toBlob(r, 'image/webp', .86));
+    if(!blob || blob.type !== 'image/webp') blob = await new Promise(r => c.toBlob(r, 'image/jpeg', .88));
+    return blob;
+  } finally { URL.revokeObjectURL(url); }
+}
 
 // ---------------- routing ----------------
 function show(v){
@@ -292,6 +337,7 @@ function vSim(){
   if(!ok) fr.innerHTML = `<span>🎁</span><p><b>تمرين مجاني:</b> جرّب «الطيران الحر» و«الإقلاع والتحويم». باقي المهام تنفتح مع تفعيل الحساب بـ ${AR(S.settings.price || K.PRICE)} ريال لمرة واحدة.</p><a class="btn sm pri" href="#pay">فعّل حسابك</a>`;
   Sim.setLocked(!ok);
   Sim.enter();
+  loadBoard(boardMission || 'hover');
 }
 
 // ---------------- glossary ----------------
@@ -373,8 +419,15 @@ async function vAccount(){
   el.innerHTML = `<div class="sec-h"><div><h2>حسابي</h2></div><button class="btn sm" id="logout">تسجيل خروج</button></div>
     ${statusCard()}
     <div class="pay">
-      <div class="card" style="display:grid;gap:8px"><h3 style="font-size:18px">بيانات الحساب</h3>
-        <div><span class="note">الاسم</span><div>${esc(pr.full_name || '—')}</div></div>
+      <div class="card" style="display:grid;gap:12px"><h3 style="font-size:18px">ملفك التعريفي</h3>
+        <div class="prof">
+          <label class="prof-ava" title="تغيير الصورة">${avatar(pr.avatar_url, pr.full_name || S.user.email, 84)}<span class="cam">📷</span><input type="file" id="ava-file" accept="image/*" hidden></label>
+          <div style="flex:1;display:grid;gap:8px;min-width:0">
+            <label class="field">الاسم الظاهر في لوحة الصدارة<input id="prof-name" maxlength="40" value="${esc(pr.full_name || '')}" placeholder="اسمك"></label>
+            <div class="row" style="gap:8px"><button class="btn sm pri" id="prof-save" type="button">حفظ</button>${pr.avatar_url ? '<button class="btn sm" id="ava-del" type="button">حذف الصورة</button>' : ''}</div>
+          </div>
+        </div>
+        <p class="note" style="margin:0">يظهر اسمك الأول وأول حرف من اسم العائلة مع صورتك في لوحة صدارة المحاكي. الصور غير اللائقة تُحذف.</p>
         <div><span class="note">البريد</span><div class="mono" dir="ltr" style="text-align:right">${esc(S.user.email)}</div></div>
         <div><span class="note">حالة الحساب</span><div>${access() ? 'مفعّل' : pr.blocked ? 'موقوف' : 'غير مفعّل'}</div></div>
       </div>
@@ -384,6 +437,26 @@ async function vAccount(){
       </div>
     </div>`;
   $('#logout').onclick = async () => { await sb.auth.signOut(); location.href = '/'; };
+  const saveProf = async (avatarUrl) => {
+    const { error } = await sb.rpc('set_my_profile', { p_name: $('#prof-name').value, p_avatar: avatarUrl });
+    if(error){ toast(/bad avatar/.test(error.message) ? 'تعذّر حفظ الصورة.' : 'تعذّر الحفظ: ' + error.message, 1); return false; }
+    await refreshProfile(); navAvatar(); return true;
+  };
+  $('#prof-save').onclick = async () => { if(await saveProf(null)){ toast('تم الحفظ'); vAccount(); } };
+  const del = $('#ava-del'); if(del) del.onclick = async () => { if(await saveProf('')){ toast('تم حذف الصورة'); vAccount(); } };
+  $('#ava-file').onchange = async e => {
+    const f = e.target.files[0]; if(!f) return;
+    if(!/^image\//.test(f.type)) return toast('اختر صورة', 1);
+    try{
+      toast('جارٍ رفع الصورة…');
+      const blob = await squareImage(f);
+      const path = `${S.user.id}/${Date.now()}.${blob.type === 'image/webp' ? 'webp' : 'jpg'}`;
+      const up = await sb.storage.from('avatars').upload(path, blob, { contentType: blob.type, upsert: false });
+      if(up.error) throw up.error;
+      const url = `${K.SUPABASE_URL}/storage/v1/object/public/avatars/${path}`;
+      if(await saveProf(url)){ toast('تم تحديث صورتك 👌'); vAccount(); }
+    } catch(err){ toast('تعذّر رفع الصورة: ' + (err.message || err), 1); }
+  };
 }
 
 renderFooter();

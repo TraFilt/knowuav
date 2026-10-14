@@ -105,10 +105,11 @@ td .mono{direction:ltr;unicode-bidi:isolate}
     const draw = () => { const q = $('#u-q').value.trim().toLowerCase(); $('#u-b').innerHTML = list.filter(p => !q || ((p.email||'')+' '+(p.full_name||'')).toLowerCase().includes(q)).slice(0, 300).map(p => {
       const act = p.active_until && new Date(p.active_until) > new Date() && !p.blocked;
       return `<tr data-u="${p.id}"><td><span class="mono">${esc(p.email)}</span></td><td>${esc(p.full_name||'')}</td><td>${fmt(p.created_at)}</td><td>${act ? 'مفعّل' : '—'}</td><td>${p.blocked ? '<span class="chip bad">موقوف</span>' : act ? '<span class="chip ok">مفعّل</span>' : '<span class="chip">مجاني</span>'}${p.is_admin ? ' <span class="chip sand">مسؤول</span>' : ''}</td>
-        <td><div class="row" style="gap:6px">${p.blocked ? '<button class="btn sm" data-unb>إلغاء الإيقاف</button>' : '<button class="btn sm no" data-blk>إيقاف</button>'}${act ? '' : '<button class="btn sm" data-g>تفعيل</button>'}</div></td></tr>`; }).join(''); };
+        <td><div class="row" style="gap:6px">${p.blocked ? '<button class="btn sm" data-unb>إلغاء الإيقاف</button>' : '<button class="btn sm no" data-blk>إيقاف</button>'}${act ? '' : '<button class="btn sm" data-g>تفعيل</button>'}${p.avatar_url ? `<a href="${esc(p.avatar_url)}" target="_blank" rel="noopener"><img src="${esc(p.avatar_url)}" alt="" style="width:30px;height:30px;border-radius:50%;object-fit:cover;vertical-align:middle"></a><button class="btn sm no" data-ava>حذف الصورة</button>` : ''}</div></td></tr>`; }).join(''); };
     $('#u-q').oninput = draw; draw();
     $('#u-b').onclick = async e => { const tr = e.target.closest('tr'); if(!tr) return; const u = tr.dataset.u;
       if(e.target.matches('[data-blk],[data-unb]')){ const { error } = await sb.rpc('admin_set_blocked', {p_user:u, p_blocked: e.target.matches('[data-blk]')}); if(error) return toast(error.message,1); toast('تم'); users(el); stats(); }
+      if(e.target.matches('[data-ava]')){ const { error } = await sb.rpc('admin_clear_avatar', {p_user:u}); if(error) return toast(error.message,1); toast('تم حذف الصورة'); users(el); }
       if(e.target.matches('[data-g]')){ const { error } = await sb.rpc('admin_grant', {p_user:u, p_days:36500}); if(error) return toast(error.message,1); toast('تم تفعيل الحساب'); users(el); stats(); } };
   }
 

@@ -322,3 +322,24 @@ body.sim-noscroll{overflow:hidden;overscroll-behavior:none}
 .cam-toast.on{opacity:1}
 @media (max-width:600px),(pointer:coarse) and (max-height:520px){.camfx .c{width:22px;height:22px}.camfx .rec,.camfx .fmt,.camfx .hdg{font-size:10px;bottom:calc(12% + 2px)}.camfx .rec{left:calc(7% + 28px)}.camfx .fmt{right:calc(7% + 28px)}.camfx .c.bl,.camfx .c.br{bottom:34%}.camfx .rec,.camfx .fmt,.camfx .hdg{bottom:calc(34% + 2px)}}
 .camfx:not([hidden]) ~ .hud .horizon,.camfx:not([hidden]) ~ .hud .ministick{display:none}
+
+/* avatars + leaderboard */
+.ava{border-radius:50%;object-fit:cover;flex:none;display:inline-block;vertical-align:middle;background:var(--ground);border:1px solid var(--line2)}
+.ava.ph{display:inline-grid;place-items:center;background:color-mix(in srgb,var(--sand) 18%,var(--ground));color:var(--sand);font-weight:600;line-height:1}
+.nav-me{display:inline-flex!important;align-items:center;gap:6px}
+.board-wrap{display:grid;gap:8px}
+.board-wrap h3{font-size:16px;font-family:var(--f-body);font-weight:600}
+.lb{list-style:none;margin:0;padding:0;display:grid;gap:5px}
+.lb li{display:flex;align-items:center;gap:8px;background:var(--ground);border:1px solid var(--line);border-radius:10px;padding:6px 10px;font-size:14px}
+.lb li.me{border-color:var(--sand);background:color-mix(in srgb,var(--sand) 10%,var(--ground))}
+.lb li.gap{margin-top:8px}
+.lb .rk{width:26px;text-align:center;font-family:var(--f-mono);color:var(--muted)}
+.lb .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lb .nm small{color:var(--sand)}
+.lb .tm{font-family:var(--f-mono);color:var(--sand);white-space:nowrap}
+.lbn{margin:2px 0 0}
+.rankline{color:var(--sand);font-size:17px;margin:-4px 0 12px}
+.prof{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.prof-ava{position:relative;cursor:pointer;flex:none}
+.prof-ava .ava{width:84px;height:84px}
+.prof-ava .cam{position:absolute;bottom:-2px;left:-2px;background:var(--sand);border-radius:50%;width:30px;height:30px;display:grid;place-items:center;font-size:15px;border:2px solid var(--panel)}

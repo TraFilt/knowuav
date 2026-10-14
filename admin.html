@@ -109,7 +109,7 @@ td .mono{direction:ltr;unicode-bidi:isolate}
     $('#u-q').oninput = draw; draw();
     $('#u-b').onclick = async e => { const tr = e.target.closest('tr'); if(!tr) return; const u = tr.dataset.u;
       if(e.target.matches('[data-blk],[data-unb]')){ const { error } = await sb.rpc('admin_set_blocked', {p_user:u, p_blocked: e.target.matches('[data-blk]')}); if(error) return toast(error.message,1); toast('تم'); users(el); stats(); }
-      if(e.target.matches('[data-g]')){ const { error } = await sb.rpc('admin_grant', {p_user:u, p_days:0}); if(error) return toast(error.message,1); toast('تم تفعيل الحساب'); users(el); stats(); } };
+      if(e.target.matches('[data-g]')){ const { error } = await sb.rpc('admin_grant', {p_user:u, p_days:36500}); if(error) return toast(error.message,1); toast('تم تفعيل الحساب'); users(el); stats(); } };
   }
 
   async function settings(el){

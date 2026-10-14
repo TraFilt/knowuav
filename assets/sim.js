@@ -20,6 +20,8 @@ window.Sim=(()=>{
  const OBST=[{x:-14,z:-6,w:5,h:7,d:5},{x:18,z:8,w:6,h:10,d:4},{x:-22,z:16,w:4,h:5,d:8},{x:6,z:26,w:8,h:4,d:3},{x:-30,z:-28,w:6,h:12,d:6},{x:32,z:-6,w:3,h:6,d:3}];
  const LAND_PAD={x:-18,z:-32},HOME={x:0,z:0};
  const opt={level:1,mode:2,cam:'chase'};
+ const COARSE=matchMedia('(pointer:coarse)').matches;
+ let locked=false,full=0,introShown=false;
  const hud={};
 
  function texGround(){const c=document.createElement('canvas');c.width=c.height=256;const x=c.getContext('2d');x.fillStyle='#b59b6a';x.fillRect(0,0,256,256);
@@ -33,12 +35,12 @@ window.Sim=(()=>{
 
  function build(){
   const bay=$('#simbay');
-  renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(2,devicePixelRatio||1));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+  renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(COARSE?1.5:2,devicePixelRatio||1));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
   renderer.outputEncoding=THREE.sRGBEncoding;bay.prepend(renderer.domElement);
   scene=new THREE.Scene();scene.background=new THREE.Color('#c9c3ad');scene.fog=new THREE.Fog('#c9c3ad',60,240);
   camera=new THREE.PerspectiveCamera(65,1,0.05,500);
   scene.add(new THREE.HemisphereLight('#e9e6dc','#7a6643',0.85));
-  const sun=new THREE.DirectionalLight('#fff2d6',1.1);sun.position.set(-40,60,25);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);
+  const sun=new THREE.DirectionalLight('#fff2d6',1.1);sun.position.set(-40,60,25);sun.castShadow=true;sun.shadow.mapSize.set(COARSE?1024:2048,COARSE?1024:2048);
   Object.assign(sun.shadow.camera,{left:-60,right:60,top:60,bottom:-60,near:1,far:200});scene.add(sun);
   const g=new THREE.Mesh(new THREE.PlaneGeometry(500,500),new THREE.MeshStandardMaterial({map:texGround(),roughness:1}));g.rotation.x=-Math.PI/2;g.receiveShadow=true;scene.add(g);
   // runway strip
@@ -70,15 +72,17 @@ window.Sim=(()=>{
   S.pos=new THREE.Vector3();S.vel=new THREE.Vector3();wind=new THREE.Vector3();clock=new THREE.Clock();
   new ResizeObserver(resize).observe(bay);resize();
   ['alt','spd','vs','bat','batbar','t','home','obj','objst','arm','sl','sr','hzg'].forEach(k=>hud[k]=document.getElementById('h-'+k));
-  setupInput();renderMissions();keysHelp();
-  start(MISSIONS[1]);
+  setupInput();setupFull();renderMissions();keysHelp();
+  start(MISSIONS[1]);intro();
  }
  function resize(){const b=$('#simbay');const w=b.clientWidth,h=b.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();touchVis()}
 
  /* ---- missions ---- */
  const best=()=>window.SIM_BEST||(window.SIM_BEST={});
- function renderMissions(){const b=best();$('#mlist').innerHTML=MISSIONS.map(m=>`<button class="mbtn ${m===mission?'on':''}" data-m="${m.id}"><b>${m.title}</b><span>${m.par?'هدف '+m.par+' ث':''}</span>${b[m.id]?`<em>أفضل وقت ${b[m.id].toFixed(1)} ث</em>`:''}</button>`).join('');
-  $('#mlist').onclick=e=>{const x=e.target.closest('.mbtn');if(x){start(MISSIONS.find(m=>m.id===x.dataset.m));x.blur()}}}
+ function renderMissions(){const b=best();$('#mlist').innerHTML=MISSIONS.map(m=>`<button class="mbtn ${m===mission?'on':''} ${isLocked(m)?'lk':''}" data-m="${m.id}"><b>${isLocked(m)?'🔒 ':''}${m.title}</b><span>${m.par?'هدف '+m.par+' ث':''}</span>${b[m.id]?`<em>أفضل وقت ${b[m.id].toFixed(1)} ث</em>`:''}</button>`).join('');
+  $('#mlist').onclick=e=>{const x=e.target.closest('.mbtn');if(x){pick(MISSIONS.find(m=>m.id===x.dataset.m));x.blur()}}}
+ function isLocked(m){return locked&&!m.free}
+ function pick(m){if(isLocked(m))return showLocked(m);start(m);if(!full)goFull()}
  function ringAt(x,y,z,r,color='#ff8f45'){const m=new THREE.Mesh(new THREE.TorusGeometry(r,.06,8,48),new THREE.MeshBasicMaterial({color}));m.position.set(x,y,z);m.rotation.x=Math.PI/2;markers.add(m);return m}
  function ballAt(x,y,z,r,color='#ff8f45',op=.25){const m=new THREE.Mesh(new THREE.SphereGeometry(r,24,16),new THREE.MeshBasicMaterial({color,transparent:true,opacity:op,depthWrite:false}));m.position.set(x,y,z);markers.add(m);return m}
  function gateAt(x,y,z,ry){const g=new THREE.Group();const mt=new THREE.MeshStandardMaterial({color:'#ff8f45',emissive:'#5a2a08'});
@@ -87,6 +91,7 @@ window.Sim=(()=>{
   g.position.set(x,y,z);g.rotation.y=ry;markers.add(g);return g}
  function clearMarkers(){while(markers.children.length)markers.remove(markers.children[0])}
  function start(m){
+  if(isLocked(m))return showLocked(m);
   mission=m;M={hold:0,i:0,objs:[]};clearMarkers();S.state='fly';S.t=0;S.bat=100;S.armed=false;S.yaw=0;S.pitch=S.roll=0;S.vel.set(0,0,0);S.pos.set(0,.06,0);S.onGround=true;wind.set(0,0,0);
   $('#over').hidden=true;
   if(m.id==='hover'){M.objs.push(ringAt(0,3,0,1.5));M.objs.push(ballAt(0,3,0,.7,'#d8bf86',.12))}
@@ -104,8 +109,8 @@ window.Sim=(()=>{
  function win(){S.state='done';const t=S.t;const b=best();if(!b[mission.id]||t<b[mission.id]){b[mission.id]=t;window.onSimBest&&window.onSimBest(mission.id,t)}
   const st=mission.par?(t<=mission.par?3:t<=mission.par*1.6?2:1):3;
   over(`<div class="stars">${'★'.repeat(st)}${'☆'.repeat(3-st)}</div><h3>أُنجزت المهمة</h3><p>الزمن ${t.toFixed(1)} ثانية · البطارية المتبقية ${Math.round(S.bat)}٪</p>`);renderMissions()}
- function crash(why){if(S.state!=='fly')return;S.state='crash';S.armed=false;over(`<h3 style="color:var(--signal)">تحطّمت الطائرة</h3><p>${why}</p>`)}
- function over(html){const nx=MISSIONS[MISSIONS.indexOf(mission)+1];$('#overbox').innerHTML=html+`<div class="row" style="justify-content:center"><button class="btn pri" id="o-re">أعد المحاولة</button>${S.state==='done'&&nx?`<button class="btn" id="o-nx">المهمة التالية</button>`:''}</div><p class="note" style="margin-top:10px">أو اضغط R / زر △ Y</p>`;$('#over').hidden=false;
+ function crash(why){if(S.state!=='fly')return;S.state='crash';S.armed=false;buzz();over(`<h3 style="color:var(--signal)">تحطّمت الطائرة</h3><p>${why}</p>`)}
+ function over(html){const nx=MISSIONS[MISSIONS.indexOf(mission)+1];$('#overbox').innerHTML=html+`<div class="row" style="justify-content:center"><button class="btn pri" id="o-re">أعد المحاولة</button>${S.state==='done'&&nx?`<button class="btn" id="o-nx">المهمة التالية</button>`:''}</div><p class="note" style="margin-top:10px">${COARSE?'':'أو اضغط R / زر △ Y'}</p>`;$('#over').hidden=false;
   $('#o-re').onclick=()=>start(mission);const n=$('#o-nx');if(n)n.onclick=()=>start(nx)}
 
  function updMission(dt){
@@ -240,10 +245,45 @@ window.Sim=(()=>{
   render(dt);updHud(dt);
   if(S.state!=='fly'&&padIdx!=null){/* allow R via pad */}
   raf=requestAnimationFrame(loop)}
+ /* ---- full screen ---- */
+ function buzz(){try{navigator.vibrate&&navigator.vibrate(180)}catch(e){}
+  try{const ps=navigator.getGamepads?navigator.getGamepads():[];for(const p of ps){if(p&&p.vibrationActuator){p.vibrationActuator.playEffect('dual-rumble',{duration:260,strongMagnitude:.9,weakMagnitude:.6}).catch(()=>{})}}}catch(e){}}
+ const fsEl=()=>document.fullscreenElement||document.webkitFullscreenElement;
+ function setFullUI(){const bay=$('#simbay');bay.classList.toggle('full',full===2);document.body.classList.toggle('sim-noscroll',full===2);
+  const b=document.getElementById('fs-btn');if(b){b.textContent=full?'✕ خروج':'⛶ ملء الشاشة';b.setAttribute('aria-label',full?'الخروج من ملء الشاشة':'ملء الشاشة')}
+  const mb=document.getElementById('fs-menu');if(mb)mb.hidden=!full;setTimeout(resize,60)}
+ function goFull(){const bay=$('#simbay');if(full)return;
+  const req=bay.requestFullscreen||bay.webkitRequestFullscreen;
+  const pseudo=()=>{full=2;setFullUI();rotateHint()};
+  if(req){try{const p=req.call(bay,{navigationUI:'hide'});full=1;setFullUI();
+    if(p&&p.then)p.then(()=>{try{screen.orientation&&screen.orientation.lock&&screen.orientation.lock('landscape').catch(()=>{})}catch(e){}}).catch(()=>{full=0;pseudo()});}catch(e){pseudo()}}
+  else pseudo()}
+ function exitFull(){if(full===1&&fsEl()){try{(document.exitFullscreen||document.webkitExitFullscreen).call(document)}catch(e){}}
+  try{screen.orientation&&screen.orientation.unlock&&screen.orientation.unlock()}catch(e){}full=0;setFullUI()}
+ function rotateHint(){if(!COARSE||innerWidth>innerHeight)return;const h=document.createElement('div');h.className='rot-hint';h.textContent='📱 أدر الجوال بالعرض لمساحة أكبر';$('#simbay').appendChild(h);setTimeout(()=>h.remove(),3200)}
+ function setupFull(){const bay=$('#simbay');
+  const bar=document.createElement('div');bar.className='fsbar';bar.innerHTML='<button id="fs-btn" type="button"></button><button id="fs-menu" type="button" hidden>☰ المهام</button>';bay.appendChild(bar);
+  $('#fs-btn').onclick=e=>{e.currentTarget.blur();full?exitFull():goFull()};
+  $('#fs-menu').onclick=e=>{e.currentTarget.blur();menu()};
+  const ch=()=>{if(full===1&&!fsEl()){full=0;try{screen.orientation.unlock()}catch(e){}setFullUI()}};
+  document.addEventListener('fullscreenchange',ch);document.addEventListener('webkitfullscreenchange',ch);
+  addEventListener('keydown',e=>{if(e.code==='Escape'&&full===2)exitFull()});
+  setFullUI()}
+ function box(html){$('#overbox').innerHTML=html;$('#over').hidden=false}
+ function intro(){if(introShown)return;introShown=true;
+  box(`<h3>جاهز تطير؟</h3><p>${COARSE?'استخدم العصاتين على الشاشة، واضغط «تسليح» ثم ارفع العصا اليسرى. وللتجربة الأفضل: الكمبيوتر أو يد تحكم بالبلوتوث.':'لوحة المفاتيح جاهزة، ولو عندك يد بلايستيشن أو إكس بوكس وصّلها واضغط أي زر.'}${locked?'<br><b style="color:var(--sand)">التمرين المجاني: الطيران الحر والإقلاع والتحويم.</b>':''}</p>
+   <div class="row" style="justify-content:center"><button class="btn pri" id="o-go">ابدأ التمرين ⛶</button><button class="btn" id="o-nofs">بدون ملء الشاشة</button></div>`);
+  $('#o-go').onclick=()=>{$('#over').hidden=true;goFull();start(mission)};$('#o-nofs').onclick=()=>{$('#over').hidden=true;start(mission)}}
+ function menu(){const b=best();box(`<h3>المهام</h3><div class="mlist omenu">${MISSIONS.map(m=>`<button class="mbtn ${m===mission?'on':''} ${isLocked(m)?'lk':''}" data-m="${m.id}"><b>${isLocked(m)?'🔒 ':''}${m.title}</b><span>${m.par?'هدف '+m.par+' ث':''}</span>${b[m.id]?`<em>أفضل وقت ${b[m.id].toFixed(1)} ث</em>`:''}</button>`).join('')}</div><div class="row" style="justify-content:center;margin-top:12px"><button class="btn sm" id="o-cl">رجوع</button></div>`);
+  $('#overbox').querySelector('.omenu').onclick=e=>{const x=e.target.closest('.mbtn');if(x){const m=MISSIONS.find(k=>k.id===x.dataset.m);if(isLocked(m))return showLocked(m);start(m)}};
+  $('#o-cl').onclick=()=>{$('#over').hidden=true}}
+ function showLocked(m){box(`<h3>🔒 ${m.title}</h3><p>هذي المهمة للحسابات المفعّلة. فعّل حسابك بـ ${(window.KU&&window.KU.PRICE)||25} ريال لمرة واحدة، وتنفتح لك كل المهام والدروس.</p><div class="row" style="justify-content:center"><a class="btn pri" href="#pay" id="o-pay">فعّل حسابك</a><button class="btn" id="o-cl">رجوع</button></div>`);
+  $('#o-pay').onclick=()=>exitFull();$('#o-cl').onclick=()=>{$('#over').hidden=true}}
  return{
+  setLocked(v){locked=!!v;if(inited){renderMissions();if(isLocked(mission))start(MISSIONS[1])}},
   enter(){if(!ok){$('#simbay').innerHTML='<div class="over"><div class="box"><h3>تعذّر تحميل المحاكي</h3><p>تحقق من اتصالك بالإنترنت ثم أعد تحميل الصفحة.</p></div></div>';return}
    if(!inited){inited=true;build()}if(!running){running=true;clock.getDelta();loop()}},
-  leave(){running=false;cancelAnimationFrame(raf)}
+  leave(){running=false;cancelAnimationFrame(raf);if(full)exitFull()}
  };
 })();
 

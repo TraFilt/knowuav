@@ -162,7 +162,7 @@ function vHome(){
   el.innerHTML = statusCard() +
     `<div class="quick">
       ${next ? `<a class="card" href="#l/${next.id}"><span class="eyebrow">تابع</span><b>${esc(next.title)}</b><span>${AR(next.mins)} دقائق</span></a>` : ''}
-      <a class="card" href="#sim"><span class="eyebrow">Flight Trainer</span><b>المحاكي</b><span>${AR(Object.keys(window.SIM_BEST||{}).length)} من ${AR(7)} مهام منجزة</span></a>
+      <a class="card" href="#sim"><span class="eyebrow">Flight Trainer</span><b>المحاكي</b><span>${access() ? AR(Object.keys(window.SIM_BEST||{}).length) + ' من ' + AR(7) + ' مهام منجزة' : 'تمرين مجاني متاح لك'}</span></a>
       <a class="card" href="#final"><span class="eyebrow">اختبار شامل</span><b>اختبر نفسك</b><span>${S.progress.final ? 'أفضل نتيجة ' + AR(S.progress.final.score) + '/' + AR(S.progress.final.total) : '١٥ سؤالاً · ١٠ دقائق'}</span></a>
     </div>
     <div class="levels">${S.levels.map(lv => {
@@ -212,6 +212,7 @@ async function vLesson(id){
     <h1>${esc(l.title)}</h1><p class="hookline">${esc(l.hook||'')}</p>
     <div id="mp"></div>
     ${renderBody(l.body)}
+    ${meta.is_free ? `<a class="card sim-cta" href="#sim"><span class="ic">🎮</span><div><div class="eyebrow">تمرين عملي مجاني</div><b>جرّب اللي تعلمته في المحاكي</b><p>أقلع وحوّم بالطيارة بنفسك، باللمس أو الكيبورد أو يد التحكم.</p></div><span class="go">ابدأ ←</span></a>` : ''}
     <section class="quiz" id="quiz"></section>
     <div class="pager">${prev ? `<a class="btn sm" href="#l/${prev.id}">→ ${esc(prev.title)}</a>` : '<span></span>'}${next ? `<a class="btn sm" href="#l/${next.id}">${esc(next.title)} ←</a>` : '<a class="btn sm" href="#final">الاختبار الشامل ←</a>'}</div>
   </article>
@@ -285,8 +286,11 @@ async function vFinal(){
 function vSim(){
   show('sim');
   const ok = access();
-  $('#sim-wrap').hidden = !ok; $('#sim-lock').hidden = ok;
-  if(!ok){ $('#sim-lock').innerHTML = paywall('المحاكي للحسابات المفعّلة'); return; }
+  $('#sim-wrap').hidden = false; $('#sim-lock').hidden = true;
+  $('#pc-tip').hidden = !matchMedia('(pointer:coarse)').matches;
+  const fr = $('#sim-free'); fr.hidden = ok;
+  if(!ok) fr.innerHTML = `<span>🎁</span><p><b>تمرين مجاني:</b> جرّب «الطيران الحر» و«الإقلاع والتحويم». باقي المهام تنفتح مع تفعيل الحساب بـ ${AR(S.settings.price || K.PRICE)} ريال لمرة واحدة.</p><a class="btn sm pri" href="#pay">فعّل حسابك</a>`;
+  Sim.setLocked(!ok);
   Sim.enter();
 }
 

@@ -240,6 +240,49 @@ table.cmp{border-collapse:collapse;width:100%;font-size:14px;min-width:520px}
 }
 @media (max-width:600px){
   .axes{grid-template-columns:1fr}.axes svg{margin:0 auto}
+  .sim-brief{display:block;margin:0 2px;font-size:14px;color:var(--muted)}
+  .sim-brief b{color:var(--text)}
+  .sim-brief:empty{display:none}
+  .nav a{padding:5px 9px;font-size:13px}
+  .mp-cap{font-size:14px;padding:8px 10px}
+}
+
+/* simulator: full screen, notes, controller guide */
+.bay:fullscreen{height:100%;min-height:0;border:0;border-radius:0}
+.bay:-webkit-full-screen{height:100%;min-height:0;border:0;border-radius:0}
+.bay.full{position:fixed;inset:0;z-index:1000;width:100vw;height:100vh;height:100dvh;min-height:0;border:0;border-radius:0;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);background:#000}
+body.sim-noscroll{overflow:hidden;overscroll-behavior:none}
+.fsbar{position:absolute;bottom:12px;right:12px;display:flex;gap:8px;z-index:3;direction:rtl}
+.fsbar button{background:#0b100dcc;border:1px solid #ffffff40;color:#f2ead2;border-radius:999px;padding:6px 14px;font:inherit;font-size:13px;cursor:pointer;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+.fsbar button:hover{border-color:var(--sand)}
+.over{z-index:4}
+.rot-hint{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:#0b100de6;border:1px solid var(--sand-dim);color:var(--text);padding:12px 18px;border-radius:12px;font-family:var(--f-body);direction:rtl;z-index:5;animation:fadeio 3.2s ease forwards;pointer-events:none}
+@keyframes fadeio{0%{opacity:0}10%{opacity:1}80%{opacity:1}100%{opacity:0}}
+.omenu{max-height:min(52vh,360px);overflow:auto;text-align:start;margin-top:8px}
+.mbtn.lk b{color:var(--faint)}
+.sim-note{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:12px 16px;margin-bottom:14px}
+.sim-note>span{font-size:22px}
+.sim-note p{margin:0;flex:1;color:var(--muted);font-size:14px}
+.sim-note p b{color:var(--text)}
+.sim-note.free{border-color:color-mix(in srgb,var(--sand) 45%,transparent)}
+.padguide{margin-top:16px;display:grid;gap:14px}
+.pg-h h3{font-size:19px;margin:2px 0 4px}
+.pg-h p{margin:0;color:var(--muted);font-size:14px}
+.pg-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.pg-grid>div{background:var(--ground);border:1px solid var(--line);border-radius:12px;padding:14px}
+.pg-grid b{display:block;margin-bottom:6px}
+.pg-grid ol,.pg-grid ul{margin:0;padding-inline-start:18px;color:var(--muted);font-size:14px;display:grid;gap:4px}
+.pg-grid li b{display:inline;margin:0;color:var(--text)}
+.pg-grid .note{margin:8px 0 0}
+.sim-cta{display:flex;align-items:center;gap:14px;margin:18px 0;border-color:color-mix(in srgb,var(--sand) 45%,transparent);text-decoration:none;color:inherit}
+.sim-cta .ic{font-size:30px}
+.sim-cta div{flex:1}
+.sim-cta b{font-size:17px}
+.sim-cta p{margin:2px 0 0;color:var(--muted);font-size:14px}
+.sim-cta .go{color:var(--sand);font-weight:600;white-space:nowrap}
+@media (max-width:900px){.pg-grid{grid-template-columns:1fr}}
+/* phones (portrait) and phones in landscape: compact HUD, clear center */
+@media (max-width:600px),(pointer:coarse) and (max-height:520px){
   .hud .tl,.hud .tr{top:8px;font-size:10px;padding:4px 7px;gap:0;line-height:1.35}
   .hud .tl{left:8px}.hud .tr{right:8px}
   .hud .tl b,.hud .tr b{font-size:12px}
@@ -253,9 +296,9 @@ table.cmp{border-collapse:collapse;width:100%;font-size:14px;min-width:520px}
   .touch i{width:44px;height:44px;left:33px;top:33px}
   .touch.l{left:10px}.touch.r{right:10px}
   .tbtn{bottom:130px;font-size:12px;padding:5px 10px}
-  .sim-brief{display:block;margin:0 2px;font-size:14px;color:var(--muted)}
-  .sim-brief b{color:var(--text)}
-  .sim-brief:empty{display:none}
-  .nav a{padding:5px 9px;font-size:13px}
-  .mp-cap{font-size:14px;padding:8px 10px}
+  .fsbar{top:48px;bottom:auto;right:auto;left:50%;transform:translateX(-50%)}
+  .fsbar button{padding:4px 10px;font-size:12px}
+  .over .box{padding:16px;max-height:calc(100% - 24px);overflow:auto}
+  .over h3{font-size:20px}
 }
+@media (pointer:coarse) and (max-height:520px){.bay.full .touch.l{left:calc(10px + env(safe-area-inset-left))}.bay.full .touch.r{right:calc(10px + env(safe-area-inset-right))}}

@@ -67,6 +67,8 @@
   <section class="view" id="v-sim" hidden>
     <div class="sec-h"><div><div class="eyebrow">Flight Trainer</div><h2>محاكي الطيران</h2><p>لوحة المفاتيح، أو يد بلايستيشن وإكس بوكس، أو اللمس على الجوال.</p></div></div>
     <div id="sim-lock" hidden></div>
+    <div class="sim-note pc" id="pc-tip" hidden><span>💻</span><p><b>المحاكي أمتع على الكمبيوتر.</b> شاشة أكبر وتحكم أدق، وتقدر تشبك يد بلايستيشن أو إكس بوكس. وعلى الجوال يشتغل باللمس، ويفضّل تدويره بالعرض.</p></div>
+    <div class="sim-note free" id="sim-free" hidden></div>
     <div id="sim-wrap">
     <div class="simgrid">
       <div class="bay" id="simbay">
@@ -93,10 +95,13 @@
         <div class="keys" id="keys"></div>
       </aside>
     </div>
-    <div class="simnotes">
-      <div class="card"><h3>يد بلايستيشن / إكس بوكس</h3><p>وصّلها بالكمبيوتر بـ USB أو بلوتوث ثم اضغط أي زر. ✕/A للتسليح، □/X للكاميرا، △/Y لإعادة المهمة.</p></div>
-      <div class="card"><h3>الجوال</h3><p>تظهر عصاتان على الشاشة تلقائياً. أدر الجوال بالعرض لمساحة أكبر.</p></div>
-      <div class="card"><h3>نصيحة</h3><p>ابدأ بمستوى «مبتدئ» وكاميرا «مطاردة»، ثم جرّب «منظور الطيار» لأنه الأقرب للواقع.</p></div>
+    <div class="padguide card">
+      <div class="pg-h"><div class="eyebrow">Gamepad</div><h3>اشبك يد التحكم في دقيقة</h3><p>المحاكي يتعرّف على يد البلايستيشن والإكس بوكس تلقائياً، بدون أي برامج. الأفضل متصفح Chrome أو Edge.</p></div>
+      <div class="pg-grid">
+        <div><b>🎮 بلايستيشن (PS4 / PS5)</b><ol><li><b>بالسلك:</b> وصّلها بمنفذ USB.</li><li><b>بالبلوتوث:</b> اضغط زر PS مع Share (أو Create في PS5) حتى يرمش الضوء، ثم اقترنها من إعدادات البلوتوث في جهازك.</li><li>ارجع للمحاكي واضغط أي زر.</li></ol></div>
+        <div><b>🎮 إكس بوكس</b><ol><li><b>بالسلك:</b> وصّلها بمنفذ USB.</li><li><b>بالبلوتوث:</b> شغّلها بزر Xbox، ثم اضغط زر الاقتران أعلى اليد حتى يرمش الشعار، واقترنها من إعدادات البلوتوث.</li><li>ارجع للمحاكي واضغط أي زر.</li></ol></div>
+        <div><b>⌨️ الأزرار</b><ul><li>العصا اليسرى: الدفع والدوران (Mode 2)</li><li>العصا اليمنى: التقدّم والميل</li><li>✕ / A: تسليح · □ / X: الكاميرا</li><li>△ / Y: إعادة المهمة</li></ul><p class="note">وتقدر تشبكها بالجوال بالبلوتوث كذلك.</p></div>
+      </div>
     </div>
     </div>
   </section>

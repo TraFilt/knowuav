@@ -40,3 +40,10 @@ update public.profiles set is_admin = true where email = 'TraFilt.store@gmail.co
 - `about / privacy / terms / refund` الصفحات القانونية
 - `supabase/content.js` محتوى الدروس. بعد تعديله شغّل `node supabase/build-seed.js` ثم أعد تشغيل `seed.sql`.
 - التعليق الصوتي محفوظ في مخزن `audio` في Supabase بأسماء `1-1.mp3` حتى `4-4.mp3`.
+
+## الإيميلات التلقائية (Gmail)
+ترحيب عند التسجيل · «تم تفعيل حسابك» عند رفع الإيصال + تنبيه لك · إيميل عند رفض الإيصال.
+1. في حساب قوقل: فعّل التحقق بخطوتين، ثم أنشئ «كلمة مرور تطبيق» من myaccount.google.com/apppasswords.
+2. Supabase ← Edge Functions ← Deploy a new function ← Via Editor، الاسم `send-email`، والصق `supabase/functions/send-email/index.ts`.
+3. Edge Functions ← Secrets: `GMAIL_USER`، `GMAIL_APP_PASSWORD`، `HOOK_SECRET`.
+4. شغّل `supabase/emails.sql` في SQL Editor بعد وضع نفس `HOOK_SECRET` مكان `PUT_YOUR_HOOK_SECRET_HERE`.

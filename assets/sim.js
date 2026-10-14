@@ -6,7 +6,12 @@ window.MISSIONS=[
  {id:'gates',title:'البوابات',brief:'مرّ من داخل البوابات الست بالترتيب.',par:60},
  {id:'land',title:'الهبوط الدقيق',brief:'طِر إلى المهبط البعيد واهبط في مركزه بهدوء.',par:40},
  {id:'wind',title:'تحويم مع رياح',brief:'ابقَ داخل الكرة لمدة ١٥ ثانية مع رياح وهبّات متغيرة.',par:35},
- {id:'rth',title:'العودة ببطارية منخفضة',brief:'البطارية ١٨٪ وأنت بعيد. عُد واهبط على مهبط المنزل قبل نفادها.',par:50}
+ {id:'rth',title:'العودة ببطارية منخفضة',brief:'البطارية ١٨٪ وأنت بعيد. عُد واهبط على مهبط المنزل قبل نفادها.',par:50},
+ {id:'slalom',title:'التعرّج بين الأعمدة',brief:'مرّ على النقاط يمين ويسار الأعمدة بالترتيب، ولا تلمس أي عمود.',par:40},
+ {id:'orbit',title:'الدوران حول البرج',brief:'لِف دورة كاملة حول البرج على بُعد ٤ إلى ٩ أمتار وارتفاع ٢ إلى ٧ أمتار.',par:35},
+ {id:'low',title:'الممر المنخفض',brief:'مرّ من الحلقات الخمس بالترتيب، ولا ترتفع فوق ٣ أمتار.',par:40},
+ {id:'pads',title:'الهبوط على ثلاث منصات',brief:'اهبط على المنصات الثلاث بالترتيب، وتوقّف تماماً على كل وحدة.',par:60},
+ {id:'night',title:'البوابات الليلية',brief:'البوابات الست بالليل. اعتمد على الإضاءة وخفّف سرعتك.',par:70}
 ];
 window.Sim=(()=>{
  let ok=typeof THREE!=='undefined',inited=false,running=false,raf=0;
@@ -20,6 +25,7 @@ window.Sim=(()=>{
  const OBST=[{x:-14,z:-6,w:5,h:7,d:5},{x:18,z:8,w:6,h:10,d:4},{x:-22,z:16,w:4,h:5,d:8},{x:6,z:26,w:8,h:4,d:3},{x:-30,z:-28,w:6,h:12,d:6},{x:32,z:-6,w:3,h:6,d:3}];
  const LAND_PAD={x:-18,z:-32},HOME={x:0,z:0};
  const opt={level:1,mode:2,cam:'chase'};
+ let hemi=null,sunL=null,headL=null;
  const COARSE=matchMedia('(pointer:coarse)').matches;
  let locked=false,full=0,introShown=false;
  const CAMS=['chase','gimbal','fpv','pilot'],CAMN={chase:'مطاردة',gimbal:'كاميرا الدرون',fpv:'FPV',pilot:'منظور الطيار'};
@@ -41,8 +47,8 @@ window.Sim=(()=>{
   renderer.outputEncoding=THREE.sRGBEncoding;bay.prepend(renderer.domElement);
   scene=new THREE.Scene();scene.background=new THREE.Color('#c9c3ad');scene.fog=new THREE.Fog('#c9c3ad',60,240);
   camera=new THREE.PerspectiveCamera(65,1,0.05,500);
-  scene.add(new THREE.HemisphereLight('#e9e6dc','#7a6643',0.85));
-  const sun=new THREE.DirectionalLight('#fff2d6',1.1);sun.position.set(-40,60,25);sun.castShadow=true;sun.shadow.mapSize.set(COARSE?1024:2048,COARSE?1024:2048);
+  hemi=new THREE.HemisphereLight('#e9e6dc','#7a6643',0.85);scene.add(hemi);
+  const sun=sunL=new THREE.DirectionalLight('#fff2d6',1.1);sun.position.set(-40,60,25);sun.castShadow=true;sun.shadow.mapSize.set(COARSE?1024:2048,COARSE?1024:2048);
   Object.assign(sun.shadow.camera,{left:-60,right:60,top:60,bottom:-60,near:1,far:200});sun.shadow.camera.layers.enable(1);scene.add(sun);
   const g=new THREE.Mesh(new THREE.PlaneGeometry(500,500),new THREE.MeshStandardMaterial({map:texGround(),roughness:1}));g.rotation.x=-Math.PI/2;g.receiveShadow=true;scene.add(g);
   // runway strip
@@ -69,6 +75,7 @@ window.Sim=(()=>{
    const blade=new THREE.Mesh(new THREE.BoxGeometry(.25,.004,.025),new THREE.MeshStandardMaterial({color:'#1c1f1d'}));blade.position.set(p.x,.058,p.z);drone.add(blade);props.push(blade)});
   const fl=new THREE.Mesh(new THREE.BoxGeometry(.06,.03,.02),new THREE.MeshBasicMaterial({color:'#ff3b2f'}));fl.position.set(0,0,-.17);drone.add(fl);
   const rl=new THREE.Mesh(new THREE.BoxGeometry(.06,.03,.02),new THREE.MeshBasicMaterial({color:'#4cff7a'}));rl.position.set(0,0,.17);drone.add(rl);
+  headL=new THREE.SpotLight('#fff6e0',0,40,.55,.5,1.2);headL.position.set(0,0,-.15);headL.target.position.set(0,-1.2,-6);drone.add(headL);drone.add(headL.target);
   drone.rotation.order='YXZ';drone.traverse(o=>o.layers.set(1));camera.layers.enable(1);scene.add(drone);
   markers=new THREE.Group();scene.add(markers);
   S.pos=new THREE.Vector3();S.vel=new THREE.Vector3();wind=new THREE.Vector3();clock=new THREE.Clock();
@@ -87,18 +94,31 @@ window.Sim=(()=>{
  function pick(m){if(isLocked(m))return showLocked(m);start(m);if(!full)goFull()}
  function ringAt(x,y,z,r,color='#ff8f45'){const m=new THREE.Mesh(new THREE.TorusGeometry(r,.06,8,48),new THREE.MeshBasicMaterial({color}));m.position.set(x,y,z);m.rotation.x=Math.PI/2;markers.add(m);return m}
  function ballAt(x,y,z,r,color='#ff8f45',op=.25){const m=new THREE.Mesh(new THREE.SphereGeometry(r,24,16),new THREE.MeshBasicMaterial({color,transparent:true,opacity:op,depthWrite:false}));m.position.set(x,y,z);markers.add(m);return m}
- function gateAt(x,y,z,ry){const g=new THREE.Group();const mt=new THREE.MeshStandardMaterial({color:'#ff8f45',emissive:'#5a2a08'});
+ function gateAt(x,y,z,ry){const g=new THREE.Group();const mt=new THREE.MeshStandardMaterial({color:'#ff8f45',emissive:mission&&mission.id==='night'?'#b8561a':'#5a2a08'});
   const w=3,h=2.2,t=.14;[[0,h/2,w,t],[0,-h/2,w,t],[-w/2,0,t,h],[w/2,0,t,h]].forEach(([px,py,sx,sy])=>{const b=new THREE.Mesh(new THREE.BoxGeometry(sx,sy,t),mt);b.position.set(px,py,0);b.castShadow=true;g.add(b)});
   const leg=new THREE.Mesh(new THREE.BoxGeometry(.1,y-h/2,.1),new THREE.MeshStandardMaterial({color:'#444'}));leg.position.set(0,-(y)/2-h/4+ .0,0);leg.position.y=-(h/2)-(y-h/2)/2;g.add(leg);
   g.position.set(x,y,z);g.rotation.y=ry;markers.add(g);return g}
+ function setNight(on){scene.background.set(on?'#0b1220':'#c9c3ad');scene.fog.color.set(on?'#0b1220':'#c9c3ad');scene.fog.near=on?12:60;scene.fog.far=on?70:240;
+  hemi.intensity=on?.12:.85;sunL.intensity=on?.05:1.1;headL.intensity=on?2.2:0}
+ function pole(x,z,h=6,r=.22,col='#d9d2bd'){const m=new THREE.Mesh(new THREE.CylinderGeometry(r,r,h,12),new THREE.MeshStandardMaterial({color:col,roughness:.6}));m.position.set(x,h/2,z);m.castShadow=true;markers.add(m);
+  const cap=new THREE.Mesh(new THREE.SphereGeometry(r*1.6,12,8),new THREE.MeshBasicMaterial({color:'#ff8f45'}));cap.position.set(x,h+.1,z);markers.add(cap);return {x,z,h,r}}
+ function vring(x,y,z,ry,r=.9){const m=new THREE.Mesh(new THREE.TorusGeometry(r,.07,8,40),new THREE.MeshBasicMaterial({color:'#ff8f45'}));m.position.set(x,y,z);m.rotation.y=ry;markers.add(m);
+  const st=new THREE.Mesh(new THREE.BoxGeometry(.08,y-r,.08),new THREE.MeshStandardMaterial({color:'#444'}));st.position.set(x,(y-r)/2,z);markers.add(st);return m}
+ function padM(x,z,label){const m=new THREE.Mesh(new THREE.CircleGeometry(1.1,40),new THREE.MeshStandardMaterial({map:texPad(label),roughness:.9}));m.rotation.x=-Math.PI/2;m.position.set(x,.025,z);m.receiveShadow=true;markers.add(m);
+  const ring=new THREE.Mesh(new THREE.TorusGeometry(1.25,.05,8,48),new THREE.MeshBasicMaterial({color:'#8a7f66'}));ring.rotation.x=Math.PI/2;ring.position.set(x,.06,z);markers.add(ring);return ring}
  function clearMarkers(){while(markers.children.length)markers.remove(markers.children[0])}
  function start(m){
   if(isLocked(m))return showLocked(m);
-  mission=m;M={hold:0,i:0,objs:[]};clearMarkers();S.state='fly';S.t=0;S.bat=100;S.armed=false;S.yaw=0;S.pitch=S.roll=0;S.vel.set(0,0,0);S.pos.set(0,.06,0);S.onGround=true;wind.set(0,0,0);
+  mission=m;M={hold:0,i:0,objs:[]};clearMarkers();setNight(m.id==='night');S.state='fly';S.t=0;S.bat=100;S.armed=false;S.yaw=0;S.pitch=S.roll=0;S.vel.set(0,0,0);S.pos.set(0,.06,0);S.onGround=true;wind.set(0,0,0);
   $('#over').hidden=true;gYaw=S.yaw;
   if(m.id==='hover'){M.objs.push(ringAt(0,3,0,1.5));M.objs.push(ballAt(0,3,0,.7,'#d8bf86',.12))}
   if(m.id==='box'){M.pts=[[10,4,-10],[10,4,10],[-10,4,10],[-10,4,-10]].map(p=>({p:new THREE.Vector3(...p),o:ballAt(...p,1.6)}));}
-  if(m.id==='gates'){const G=[[0,3,-12,0],[8,3.5,-24,-.6],[20,4,-30,-1.4],[28,3,-18,-2.6],[22,3,-4,-3.6],[10,3.5,6,-4.6]];M.pts=G.map(g=>({p:new THREE.Vector3(g[0],g[1],g[2]),o:gateAt(...g)}))}
+  if(m.id==='slalom'){M.poles=[];const Z=[-8,-15,-22,-29,-36];M.pts=Z.map((z,i)=>{M.poles.push(pole(0,z));const x=i%2?-2.6:2.6;return {p:new THREE.Vector3(x,2.5,z),o:ballAt(x,2.5,z,1.2)}});M.pts.push({p:new THREE.Vector3(0,2.5,-44),o:ballAt(0,2.5,-44,1.4,'#7cd39b')})}
+  if(m.id==='orbit'){M.c=new THREE.Vector3(0,0,-14);M.poles=[pole(0,-14,9,.4,'#9a9488')];M.acc=0;M.last=null;
+   const band=new THREE.Mesh(new THREE.RingGeometry(4,9,64),new THREE.MeshBasicMaterial({color:'#d8bf86',transparent:true,opacity:.18,side:THREE.DoubleSide,depthWrite:false}));band.rotation.x=-Math.PI/2;band.position.set(0,.04,-14);markers.add(band)}
+  if(m.id==='low'){const R=[[5,1.3,-6],[11,1.2,-13],[7,1.1,-21],[0,1.2,-26],[-6,1.3,-19]];M.pts=R.map((r,i)=>{const nx=R[i+1]||[r[0]-6,r[1],r[2]+6],pv=R[i-1]||[0,1,0];const ry=Math.atan2(nx[0]-pv[0],nx[2]-pv[2]);return {p:new THREE.Vector3(...r),o:vring(r[0],r[1],r[2],ry)}})}
+  if(m.id==='pads'){const P=[[8,-6,'1'],[-7,-13,'2'],[5,-22,'3']];M.pts=P.map(([x,z,l])=>({p:new THREE.Vector3(x,.06,z),o:padM(x,z,l)}))}
+  if(m.id==='night'||m.id==='gates'){const G=[[0,3,-12,0],[8,3.5,-24,-.6],[20,4,-30,-1.4],[28,3,-18,-2.6],[22,3,-4,-3.6],[10,3.5,6,-4.6]];M.pts=G.map(g=>({p:new THREE.Vector3(g[0],g[1],g[2]),o:gateAt(...g)}))}
   if(m.id==='land'){M.objs.push(ringAt(LAND_PAD.x,.08,LAND_PAD.z,1.2,'#7cd39b'));const beacon=new THREE.Mesh(new THREE.CylinderGeometry(.05,.05,12,6),new THREE.MeshBasicMaterial({color:'#7cd39b',transparent:true,opacity:.5}));beacon.position.set(LAND_PAD.x,6,LAND_PAD.z);markers.add(beacon)}
   if(m.id==='wind'){M.objs.push(ballAt(0,4,-4,2,'#d8bf86',.15))}
   if(m.id==='rth'){S.pos.set(55,18,-60);S.onGround=false;S.armed=true;S.bat=18;S.yaw=Math.atan2(55,-60);M.objs.push(ringAt(0,.08,0,1.5,'#7cd39b'));const bc=new THREE.Mesh(new THREE.CylinderGeometry(.06,.06,20,6),new THREE.MeshBasicMaterial({color:'#7cd39b',transparent:true,opacity:.5}));bc.position.set(0,10,0);markers.add(bc)}
@@ -119,7 +139,14 @@ window.Sim=(()=>{
   const p=S.pos,id=mission.id;
   if(id==='free'){flash(S.armed?'طيران حر':'اضغط مسافة للتسليح');return}
   if(id==='hover'){const okz=Math.abs(p.y-3)<.7&&Math.hypot(p.x,p.z)<1.5;M.hold=okz?M.hold+dt:0;flash(`داخل المنطقة: ${M.hold.toFixed(1)} / 5.0 ث`);if(M.hold>=5)win()}
-  if(id==='box'||id==='gates'){const tg=M.pts[M.i];const d=p.distanceTo(tg.p);flash(`النقطة ${M.i+1} من ${M.pts.length} · المسافة ${d.toFixed(0)} م`);if(d<(id==='gates'?1.3:1.6)){M.i++;markActive();if(M.i>=M.pts.length)win()}}
+  if(id==='low'&&p.y>3&&S.armed&&!S.onGround)return crash('ارتفعت فوق ٣ أمتار. هذا تحدي طيران منخفض، خلك قريب من الأرض.');
+  if(id==='orbit'){const dx=p.x-M.c.x,dz=p.z-M.c.z,r=Math.hypot(dx,dz),a=Math.atan2(dz,dx);const ok=r>=4&&r<=9&&p.y>=2&&p.y<=7;
+   if(ok){if(M.last!=null){let d=a-M.last;if(d>Math.PI)d-=2*Math.PI;if(d<-Math.PI)d+=2*Math.PI;M.acc+=d}M.last=a}else{if(M.acc!==0&&Math.abs(M.acc)>.2)flash('خرجت من النطاق! العدّاد رجع صفر');M.acc=0;M.last=null}
+   const pc=Math.min(100,Math.abs(M.acc)/(2*Math.PI)*100);if(ok)flash(`الدورة ${pc.toFixed(0)}٪ · البُعد ${r.toFixed(1)} م · الارتفاع ${p.y.toFixed(1)} م`);else if(!M.acc)flash(`ادخل النطاق: بُعد ٤–٩ م وارتفاع ٢–٧ م (الآن ${r.toFixed(1)} م / ${p.y.toFixed(1)} م)`);
+   if(Math.abs(M.acc)>=2*Math.PI)win()}
+  if(id==='pads'){const tg=M.pts[M.i];const d=Math.hypot(p.x-tg.p.x,p.z-tg.p.z);flash(`المنصة ${M.i+1} من ٣ · المسافة ${d.toFixed(1)} م`);
+   if(S.onGround&&d<1.05&&S.vel.length()<.3&&S.t>1){M.i++;markActive();if(M.i>=M.pts.length)win();else flash('ممتاز! أقلع للمنصة التالية')}}
+  if(id==='box'||id==='gates'||id==='night'||id==='slalom'||id==='low'){const tg=M.pts[M.i];const d=p.distanceTo(tg.p);flash(`النقطة ${M.i+1} من ${M.pts.length} · المسافة ${d.toFixed(0)} م`);if(d<({gates:1.3,night:1.3,slalom:1.4,low:.95})[id]||d<(id==='box'?1.6:0)){M.i++;markActive();if(M.i>=M.pts.length)win()}}
   if(id==='land'||id==='rth'){const P=id==='land'?LAND_PAD:HOME;const d=Math.hypot(p.x-P.x,p.z-P.z);flash(`إلى المهبط ${d.toFixed(1)} م · ارتفاع ${p.y.toFixed(1)} م`);
    if(S.onGround&&d<(id==='land'?1.2:1.5)&&S.vel.length()<.3&&S.t>1)win();
    if(id==='rth'&&S.bat<=0)crash('نفدت البطارية قبل الوصول. اختر أقصر مسار وحافظ على ارتفاع آمن.')}
@@ -218,7 +245,8 @@ window.Sim=(()=>{
   if(S.onGround){S.pitch*=.6;S.roll*=.6}
   // obstacles & bounds
   for(const o of OBST){if(Math.abs(S.pos.x-o.x)<o.w/2+.3&&Math.abs(S.pos.z-o.z)<o.d/2+.3&&S.pos.y<o.h+.1)return crash('اصطدمت بمبنى. راقب محيطك وحافظ على مسافة آمنة.')}
-  if(M.pts&&mission.id==='gates'){for(const gp of M.pts){const g=gp.o;tmp.copy(S.pos).sub(g.position).applyAxisAngle(new THREE.Vector3(0,1,0),-g.rotation.y);if(Math.abs(tmp.z)<.2&&((Math.abs(Math.abs(tmp.x)-1.5)<.2&&Math.abs(tmp.y)<1.2)||(Math.abs(Math.abs(tmp.y)-1.1)<.2&&Math.abs(tmp.x)<1.6)))return crash('اصطدمت بإطار البوابة. خفّف السرعة واستهدف المنتصف.')}}
+  if(M.poles){for(const o of M.poles){if(Math.hypot(S.pos.x-o.x,S.pos.z-o.z)<o.r+.28&&S.pos.y<o.h+.15)return crash('اصطدمت بالعمود. خفّف سرعتك وخذ مسافة أوسع.')}}
+  if(M.pts&&(mission.id==='gates'||mission.id==='night')){for(const gp of M.pts){const g=gp.o;tmp.copy(S.pos).sub(g.position).applyAxisAngle(new THREE.Vector3(0,1,0),-g.rotation.y);if(Math.abs(tmp.z)<.2&&((Math.abs(Math.abs(tmp.x)-1.5)<.2&&Math.abs(tmp.y)<1.2)||(Math.abs(Math.abs(tmp.y)-1.1)<.2&&Math.abs(tmp.x)<1.6)))return crash('اصطدمت بإطار البوابة. خفّف السرعة واستهدف المنتصف.')}}
   if(Math.hypot(S.pos.x,S.pos.z)>180)return crash('خرجت عن حدود الميدان.');
   if(S.pos.y>120){S.pos.y=120;S.vel.y=Math.min(0,S.vel.y)}
   if(S.bat<=0&&!S.onGround&&mission.id!=='rth'){S.armed=false}

@@ -69,7 +69,7 @@ window.onSimBest = async (mission, t) => {
 };
 
 // ---------------- leaderboard + avatars ----------------
-const MNAME = { hover:'الإقلاع والتحويم', box:'المربع', gates:'البوابات', land:'الهبوط الدقيق', wind:'تحويم مع رياح', rth:'العودة ببطارية منخفضة' };
+const MNAME = { hover:'الإقلاع والتحويم', box:'المربع', gates:'البوابات', land:'الهبوط الدقيق', wind:'تحويم مع رياح', rth:'العودة ببطارية منخفضة', slalom:'التعرّج بين الأعمدة', orbit:'الدوران حول البرج', low:'الممر المنخفض', pads:'الهبوط على ثلاث منصات', night:'البوابات الليلية' };
 function avatar(url, name, size = 36){
   const n = String(name || '؟').trim().charAt(0) || '؟';
   return url ? `<img class="ava" src="${esc(url)}" alt="" width="${size}" height="${size}" style="width:${size}px;height:${size}px" loading="lazy">`
@@ -207,7 +207,7 @@ function vHome(){
   el.innerHTML = statusCard() +
     `<div class="quick">
       ${next ? `<a class="card" href="#l/${next.id}"><span class="eyebrow">تابع</span><b>${esc(next.title)}</b><span>${AR(next.mins)} دقائق</span></a>` : ''}
-      <a class="card" href="#sim"><span class="eyebrow">Flight Trainer</span><b>المحاكي</b><span>${access() ? AR(Object.keys(window.SIM_BEST||{}).length) + ' من ' + AR(7) + ' مهام منجزة' : 'تمرين مجاني متاح لك'}</span></a>
+      <a class="card" href="#sim"><span class="eyebrow">Flight Trainer</span><b>المحاكي</b><span>${access() ? AR(Object.keys(window.SIM_BEST||{}).length) + ' من ' + AR((window.MISSIONS||[]).filter(m=>m.par).length || 11) + ' مهمة منجزة' : 'تمرين مجاني متاح لك'}</span></a>
       <a class="card" href="#final"><span class="eyebrow">اختبار شامل</span><b>اختبر نفسك</b><span>${S.progress.final ? 'أفضل نتيجة ' + AR(S.progress.final.score) + '/' + AR(S.progress.final.total) : '١٥ سؤالاً · ١٠ دقائق'}</span></a>
     </div>
     <div class="levels">${S.levels.map(lv => {

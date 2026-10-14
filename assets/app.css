@@ -302,3 +302,23 @@ body.sim-noscroll{overflow:hidden;overscroll-behavior:none}
   .over h3{font-size:20px}
 }
 @media (pointer:coarse) and (max-height:520px){.bay.full .touch.l{left:calc(10px + env(safe-area-inset-left))}.bay.full .touch.r{right:calc(10px + env(safe-area-inset-right))}}
+
+/* drone camera overlay */
+.camfx{position:absolute;inset:0;pointer-events:none;z-index:1;background:radial-gradient(ellipse 75% 70% at 50% 50%,transparent 62%,#0007 100%);font-family:var(--f-mono);color:#fff;text-shadow:0 1px 2px #000}
+.camfx .c{position:absolute;width:34px;height:34px;border:2px solid #ffffffb3}
+.camfx .c.tl{left:7%;top:24%;border-right:0;border-bottom:0}.camfx .c.tr{right:7%;top:24%;border-left:0;border-bottom:0}
+.camfx .c.bl{left:7%;bottom:12%;border-right:0;border-top:0}.camfx .c.br{right:7%;bottom:12%;border-left:0;border-top:0}
+.camfx .ret{position:absolute;left:50%;top:50%;width:26px;height:26px;margin:-13px 0 0 -13px;background:linear-gradient(#ffffffb3,#ffffffb3) center/26px 1.5px no-repeat,linear-gradient(#ffffffb3,#ffffffb3) center/1.5px 26px no-repeat;opacity:.7}
+.camfx[data-m="fpv"] .ret{width:60px;margin-left:-30px;background:linear-gradient(#ffffffb3,#ffffffb3) left center/20px 1.5px no-repeat,linear-gradient(#ffffffb3,#ffffffb3) right center/20px 1.5px no-repeat}
+.camfx .rec{position:absolute;left:calc(7% + 44px);bottom:calc(12% + 4px);font-size:12px;display:flex;align-items:center;gap:6px}
+.camfx .rec b{width:9px;height:9px;border-radius:50%;background:#ff3b30;animation:recblink 1s steps(1) infinite}
+@keyframes recblink{50%{opacity:0}}
+.camfx .fmt{position:absolute;right:calc(7% + 44px);bottom:calc(12% + 4px);font-size:12px;opacity:.85}
+.camfx .hdg{position:absolute;left:50%;bottom:calc(12% + 4px);transform:translateX(-50%);font-size:12px;opacity:.85}
+.camfx .tiltbar{position:absolute;right:calc(7% - 18px);top:30%;height:40%;width:3px;background:#ffffff40;border-radius:2px}
+.camfx .tiltbar i{position:absolute;left:-4px;width:11px;height:3px;background:var(--sand);border-radius:2px;transform:translateY(-50%)}
+.camfx[data-m="fpv"] .tiltbar,.camfx[data-m="fpv"] .fmt{display:none}
+.cam-toast{position:absolute;left:50%;bottom:22%;transform:translateX(-50%);background:#0b100dd9;border:1px solid #ffffff33;color:#f2ead2;padding:6px 14px;border-radius:999px;font-family:var(--f-body);font-size:14px;direction:rtl;opacity:0;transition:opacity .25s;pointer-events:none;z-index:3}
+.cam-toast.on{opacity:1}
+@media (max-width:600px),(pointer:coarse) and (max-height:520px){.camfx .c{width:22px;height:22px}.camfx .rec,.camfx .fmt,.camfx .hdg{font-size:10px;bottom:calc(12% + 2px)}.camfx .rec{left:calc(7% + 28px)}.camfx .fmt{right:calc(7% + 28px)}.camfx .c.bl,.camfx .c.br{bottom:34%}.camfx .rec,.camfx .fmt,.camfx .hdg{bottom:calc(34% + 2px)}}
+.camfx:not([hidden]) ~ .hud .horizon,.camfx:not([hidden]) ~ .hud .ministick{display:none}

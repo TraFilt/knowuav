@@ -22,6 +22,8 @@ window.Sim=(()=>{
  const opt={level:1,mode:2,cam:'chase'};
  const COARSE=matchMedia('(pointer:coarse)').matches;
  let locked=false,full=0,introShown=false;
+ const CAMS=['chase','gimbal','fpv','pilot'],CAMN={chase:'مطاردة',gimbal:'كاميرا الدرون',fpv:'FPV',pilot:'منظور الطيار'};
+ let gTilt=-.12,gYaw=0,camKey='';
  const hud={};
 
  function texGround(){const c=document.createElement('canvas');c.width=c.height=256;const x=c.getContext('2d');x.fillStyle='#b59b6a';x.fillRect(0,0,256,256);
@@ -41,7 +43,7 @@ window.Sim=(()=>{
   camera=new THREE.PerspectiveCamera(65,1,0.05,500);
   scene.add(new THREE.HemisphereLight('#e9e6dc','#7a6643',0.85));
   const sun=new THREE.DirectionalLight('#fff2d6',1.1);sun.position.set(-40,60,25);sun.castShadow=true;sun.shadow.mapSize.set(COARSE?1024:2048,COARSE?1024:2048);
-  Object.assign(sun.shadow.camera,{left:-60,right:60,top:60,bottom:-60,near:1,far:200});scene.add(sun);
+  Object.assign(sun.shadow.camera,{left:-60,right:60,top:60,bottom:-60,near:1,far:200});sun.shadow.camera.layers.enable(1);scene.add(sun);
   const g=new THREE.Mesh(new THREE.PlaneGeometry(500,500),new THREE.MeshStandardMaterial({map:texGround(),roughness:1}));g.rotation.x=-Math.PI/2;g.receiveShadow=true;scene.add(g);
   // runway strip
   const rw=new THREE.Mesh(new THREE.PlaneGeometry(8,90),new THREE.MeshStandardMaterial({color:'#5b5a52',roughness:.95}));rw.rotation.x=-Math.PI/2;rw.position.set(40,0.01,-20);rw.receiveShadow=true;scene.add(rw);
@@ -67,7 +69,7 @@ window.Sim=(()=>{
    const blade=new THREE.Mesh(new THREE.BoxGeometry(.25,.004,.025),new THREE.MeshStandardMaterial({color:'#1c1f1d'}));blade.position.set(p.x,.058,p.z);drone.add(blade);props.push(blade)});
   const fl=new THREE.Mesh(new THREE.BoxGeometry(.06,.03,.02),new THREE.MeshBasicMaterial({color:'#ff3b2f'}));fl.position.set(0,0,-.17);drone.add(fl);
   const rl=new THREE.Mesh(new THREE.BoxGeometry(.06,.03,.02),new THREE.MeshBasicMaterial({color:'#4cff7a'}));rl.position.set(0,0,.17);drone.add(rl);
-  drone.rotation.order='YXZ';scene.add(drone);
+  drone.rotation.order='YXZ';drone.traverse(o=>o.layers.set(1));camera.layers.enable(1);scene.add(drone);
   markers=new THREE.Group();scene.add(markers);
   S.pos=new THREE.Vector3();S.vel=new THREE.Vector3();wind=new THREE.Vector3();clock=new THREE.Clock();
   new ResizeObserver(resize).observe(bay);resize();
@@ -93,7 +95,7 @@ window.Sim=(()=>{
  function start(m){
   if(isLocked(m))return showLocked(m);
   mission=m;M={hold:0,i:0,objs:[]};clearMarkers();S.state='fly';S.t=0;S.bat=100;S.armed=false;S.yaw=0;S.pitch=S.roll=0;S.vel.set(0,0,0);S.pos.set(0,.06,0);S.onGround=true;wind.set(0,0,0);
-  $('#over').hidden=true;
+  $('#over').hidden=true;gYaw=S.yaw;
   if(m.id==='hover'){M.objs.push(ringAt(0,3,0,1.5));M.objs.push(ballAt(0,3,0,.7,'#d8bf86',.12))}
   if(m.id==='box'){M.pts=[[10,4,-10],[10,4,10],[-10,4,10],[-10,4,-10]].map(p=>({p:new THREE.Vector3(...p),o:ballAt(...p,1.6)}));}
   if(m.id==='gates'){const G=[[0,3,-12,0],[8,3.5,-24,-.6],[20,4,-30,-1.4],[28,3,-18,-2.6],[22,3,-4,-3.6],[10,3.5,6,-4.6]];M.pts=G.map(g=>({p:new THREE.Vector3(g[0],g[1],g[2]),o:gateAt(...g)}))}
@@ -128,14 +130,14 @@ window.Sim=(()=>{
  let padIdx=null,padName='';
  function setupInput(){
   addEventListener('keydown',e=>{if(!running)return;if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)&&!/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName))e.preventDefault();
-   if(e.repeat)return;keys[e.code]=true;if(e.code==='Space')toggleArm();if(e.code==='KeyR')start(mission);if(e.code==='KeyC')cycleCam()});
+   if(e.repeat)return;keys[e.code]=true;if(e.code==='Space')toggleArm();if(e.code==='KeyR')start(mission);if(e.code==='KeyC')cycleCam();if(e.code==='KeyV')cycleCam(-1)});
   addEventListener('keyup',e=>{keys[e.code]=false});
   addEventListener('blur',()=>{for(const k in keys)keys[k]=false});
   addEventListener('gamepadconnected',e=>{padIdx=e.gamepad.index;padName=e.gamepad.id;padSt()});
   addEventListener('gamepaddisconnected',e=>{if(e.gamepad.index===padIdx){padIdx=null;padSt()}});
   $('#s-level').onchange=e=>{opt.level=+e.target.value;e.target.blur()};
   $('#s-mode').onchange=e=>{opt.mode=+e.target.value;keysHelp();e.target.blur()};
-  $('#s-cam').onchange=e=>{opt.cam=e.target.value;e.target.blur()};
+  $('#s-cam').onchange=e=>{setCam(e.target.value);e.target.blur()};
   $('#s-touch').onchange=()=>touchVis();
   // touch sticks
   const bay=$('#simbay');
@@ -152,23 +154,30 @@ window.Sim=(()=>{
  }
  function touchVis(){const v=$('#s-touch').value;const show=v==='on'||(v==='auto'&&matchMedia('(pointer:coarse)').matches);['t-l','t-r','t-arm','t-cam'].forEach(i=>{const e=document.getElementById(i);if(e)e.hidden=!show})}
  function padSt(){const e=$('#padst');if(padIdx!=null){e.textContent='متصلة: '+(padName.replace(/\(.*?\)/g,'').trim().slice(0,40)||'يد تحكم');e.classList.add('on')}else{e.textContent='لم تُوصل يد تحكم. وصّلها واضغط أي زر.';e.classList.remove('on')}}
- function keysHelp(){const m2=opt.mode===2;$('#keys').innerHTML=`<span class="kbd">${m2?'W / S':'↑ / ↓'}</span><span>الدفع: صعود ونزول</span><span class="kbd">A / D</span><span>الانعراج: دوران</span><span class="kbd">${m2?'↑ / ↓':'W / S'}</span><span>الميل الأمامي: تقدّم وتراجع</span><span class="kbd">← / →</span><span>الميل الجانبي</span><span class="kbd">مسافة</span><span>تسليح / فصل</span><span class="kbd">C</span><span>تبديل الكاميرا</span><span class="kbd">R</span><span>إعادة المهمة</span>`}
+ function keysHelp(){const m2=opt.mode===2;$('#keys').innerHTML=`<span class="kbd">${m2?'W / S':'↑ / ↓'}</span><span>الدفع: صعود ونزول</span><span class="kbd">A / D</span><span>الانعراج: دوران</span><span class="kbd">${m2?'↑ / ↓':'W / S'}</span><span>الميل الأمامي: تقدّم وتراجع</span><span class="kbd">← / →</span><span>الميل الجانبي</span><span class="kbd">مسافة</span><span>تسليح / فصل</span><span class="kbd">C</span><span>تبديل الكاميرا</span><span class="kbd">Q / E</span><span>إمالة كاميرا الدرون</span><span class="kbd">R</span><span>إعادة المهمة</span>`}
  function toggleArm(){if(S.state!=='fly')return;if(S.armed){if(S.onGround||S.pos.y<.4){S.armed=false}else flash('لا يمكن فصل التسليح في الجو')}else{if(S.onGround)S.armed=true}}
- function cycleCam(){const o=['chase','pilot','fpv'];opt.cam=o[(o.indexOf(opt.cam)+1)%3];$('#s-cam').value=opt.cam}
+ function cycleCam(d=1){setCam(CAMS[(CAMS.indexOf(opt.cam)+d+CAMS.length)%CAMS.length])}
+ function setCam(c){opt.cam=c;const sel=$('#s-cam');if(sel)sel.value=c;gYaw=S.yaw;
+  const on=c==='gimbal'||c==='fpv';camera.layers[on?'disable':'enable'](1);
+  const fx=document.getElementById('camfx');if(fx){fx.hidden=!on;fx.dataset.m=c;const t=document.getElementById('cf-mode');if(t)t.textContent=c==='fpv'?'FPV':'CAM'}
+  camToast(CAMN[c])}
+ let ctT=0;function camToast(t){const b=$('#simbay');let e=document.getElementById('cam-toast');if(!e){e=document.createElement('div');e.id='cam-toast';e.className='cam-toast';b.appendChild(e)}e.textContent='🎥 '+t;e.classList.add('on');clearTimeout(ctT);ctT=setTimeout(()=>e.classList.remove('on'),1300)}
  const pbtn=[];
  function readInput(dt){
   const m2=opt.mode===2;
   const k=(a,b)=>(keys[a]?1:0)-(keys[b]?1:0);
   const tgt={thr:m2?k('KeyW','KeyS'):k('ArrowUp','ArrowDown'),yaw:k('KeyD','KeyA'),pitch:m2?k('ArrowUp','ArrowDown'):k('KeyW','KeyS'),roll:k('ArrowRight','ArrowLeft')};
   for(const a in kv){const d=tgt[a]-kv[a];kv[a]+=Math.sign(d)*Math.min(Math.abs(d),dt*(tgt[a]===0?6:3.2))}
+  let tl=(keys.KeyQ?1:0)-(keys.KeyE?1:0);
   let g={thr:0,yaw:0,pitch:0,roll:0},gp=null;
   try{const ps=navigator.getGamepads?navigator.getGamepads():[];for(const p of ps){if(p&&p.connected){gp=p;break}}}catch(e){}
   if(gp){if(padIdx==null){padIdx=gp.index;padName=gp.id;padSt()}
    const dz=v=>Math.abs(v)<.08?0:(v-Math.sign(v)*.08)/.92;const ax=gp.axes;
    const lx=dz(ax[0]||0),ly=-dz(ax[1]||0),rx=dz(ax[2]||0),ry=-dz(ax[3]||0);
    g=m2?{thr:ly,yaw:lx,pitch:ry,roll:rx}:{pitch:ly,yaw:lx,thr:ry,roll:rx};
-   const b=i=>gp.buttons[i]&&gp.buttons[i].pressed;[0,2,3,9].forEach(i=>{const p=b(i);if(p&&!pbtn[i]){if(i===0||i===9)toggleArm();if(i===2)cycleCam();if(i===3)start(mission)}pbtn[i]=p})}
+   const b=i=>gp.buttons[i]&&gp.buttons[i].pressed;if(b(4))tl+=1;if(b(5))tl-=1;[0,2,3,9].forEach(i=>{const p=b(i);if(p&&!pbtn[i]){if(i===0||i===9)toggleArm();if(i===2)cycleCam();if(i===3)start(mission)}pbtn[i]=p})}
   const t=m2?{thr:touch.l.y,yaw:touch.l.x,pitch:touch.r.y,roll:touch.r.x}:{pitch:touch.l.y,yaw:touch.l.x,thr:touch.r.y,roll:touch.r.x};
+  if(tl)gTilt=Math.max(-1.45,Math.min(.35,gTilt+tl*dt*.9));
   const c=v=>Math.max(-1,Math.min(1,v));
   for(const a in IN)if(a!=='src')IN[a]=c(kv[a]+g[a]+t[a]);
  }
@@ -217,7 +226,7 @@ window.Sim=(()=>{
  }
 
  /* ---- render ---- */
- const camOff=ok?new THREE.Vector3():null,look=ok?new THREE.Vector3():null;
+ const camOff=ok?new THREE.Vector3():null,look=ok?new THREE.Vector3():null,Y_AX=ok?new THREE.Vector3(0,1,0):null,tq=ok?new THREE.Quaternion():null,FPV_TILT=ok?new THREE.Quaternion().setFromEuler(new THREE.Euler(.44,0,0,'YXZ')):null;
  function render(dt){
   drone.position.copy(S.pos);drone.rotation.set(-S.pitch,S.yaw,-S.roll,'YXZ');
   const spin=S.armed?(30+IN.thr*12):0;props.forEach((p,i)=>p.rotation.y+=spin*dt*(i%3===0?1:-1));
@@ -225,7 +234,19 @@ window.Sim=(()=>{
   if(markers)markers.children.forEach(m=>{if(m.geometry&&m.geometry.type==='TorusGeometry')m.rotation.z+=dt*.6});
   if(opt.cam==='chase'){camOff.set(0,1.3,3.4).applyAxisAngle(new THREE.Vector3(0,1,0),S.yaw);tmp.copy(S.pos).add(camOff);if(tmp.y<.3)tmp.y=.3;camera.position.lerp(tmp,1-Math.exp(-dt*5));look.copy(S.pos).y+=.25;camera.lookAt(look);camera.fov=65}
   else if(opt.cam==='pilot'){camera.position.set(0,1.7,7);camera.lookAt(S.pos);const d=camera.position.distanceTo(S.pos);camera.fov=Math.max(14,Math.min(60,60-d*.7))}
-  else{camera.position.copy(S.pos);eul.set(-S.pitch+.25,S.yaw,-S.roll,'YXZ');camera.quaternion.setFromEuler(eul);camera.fov=100}
+  else if(opt.cam==='gimbal'){
+   // stabilised 3-axis gimbal under the nose: follows heading smoothly, keeps the horizon level
+   camOff.set(0,-.035,-.2).applyAxisAngle(Y_AX,S.yaw);camera.position.copy(S.pos).add(camOff);if(camera.position.y<.04)camera.position.y=.04;
+   gYaw+=(S.yaw-gYaw)*Math.min(1,dt*7);
+   const sh=S.armed?(.0006+Math.hypot(S.vel.x,S.vel.z)*.00012):0,tt=performance.now()/1000;
+   eul.set(gTilt+Math.sin(tt*31)*sh,gYaw+Math.sin(tt*23)*sh,Math.sin(tt*17)*sh*.5,'YXZ');camera.quaternion.setFromEuler(eul);camera.fov=74}
+  else{
+   // FPV: camera fixed to the frame with 25° uptilt, so it banks and pitches with the drone
+   eul.set(-S.pitch,S.yaw,-S.roll,'YXZ');q.setFromEuler(eul);
+   camOff.set(0,.035,-.19).applyQuaternion(q);camera.position.copy(S.pos).add(camOff);if(camera.position.y<.05)camera.position.y=.05;
+   camera.quaternion.copy(q).multiply(FPV_TILT);
+   if(S.armed){const v=.0012+Math.min(.004,(30+IN.thr*12)*.00004),tt=performance.now()/1000;eul.set(Math.sin(tt*47)*v,Math.sin(tt*41)*v,0,'YXZ');tq.setFromEuler(eul);camera.quaternion.multiply(tq)}
+   camera.fov=104}
   camera.updateProjectionMatrix();
   renderer.render(scene,camera);
  }
@@ -235,6 +256,7 @@ window.Sim=(()=>{
   hud.bat.textContent=Math.round(S.bat);hud.batbar.style.width=S.bat+'%';hud.batbar.style.background=S.bat<25?'var(--signal)':'var(--ok)';
   const t=Math.floor(S.t);hud.t.textContent=String(Math.floor(t/60)).padStart(2,'0')+':'+String(t%60).padStart(2,'0');
   hud.home.textContent=Math.hypot(S.pos.x,S.pos.z).toFixed(0);
+  if(opt.cam==='gimbal'||opt.cam==='fpv'){const r=document.getElementById('cf-rec');if(r)r.textContent=hud.t.textContent;const gt=document.getElementById('cf-tilt');if(gt)gt.style.top=(Math.max(0,Math.min(1,(-gTilt+.35)/1.8))*100)+'%';const h=document.getElementById('cf-hdg');if(h){let d=Math.round((-S.yaw*57.2958)%360);if(d<0)d+=360;h.textContent=String(d).padStart(3,'0')+'°'}}
   hud.arm.textContent=S.armed?'مسلّحة':'غير مسلّحة';hud.arm.classList.toggle('on',S.armed);
   const m2=opt.mode===2;const L=m2?[IN.yaw,IN.thr]:[IN.yaw,IN.pitch],R=m2?[IN.roll,IN.pitch]:[IN.roll,IN.thr];
   hud.sl.style.transform=`translate(${L[0]*24}px,${-L[1]*24}px)`;hud.sr.style.transform=`translate(${R[0]*24}px,${-R[1]*24}px)`;

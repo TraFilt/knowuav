@@ -72,6 +72,7 @@
     <div id="sim-wrap">
     <div class="simgrid">
       <div class="bay" id="simbay">
+        <div class="camfx" id="camfx" hidden aria-hidden="true"><i class="c tl"></i><i class="c tr"></i><i class="c bl"></i><i class="c br"></i><span class="rec"><b></b><em id="cf-mode">CAM</em> <span id="cf-rec">00:00</span></span><span class="fmt">4K · 30</span><span class="hdg" id="cf-hdg">000°</span><span class="ret"></span><span class="tiltbar"><i id="cf-tilt"></i></span></div>
         <div class="hud">
           <div class="tl"><span>ALT <b id="h-alt">0.0</b> m</span><span>SPD <b id="h-spd">0.0</b> m/s</span><span>V/S <b id="h-vs">0.0</b></span></div>
           <div class="tr"><span>BAT <b id="h-bat">100</b>%</span><div class="batbar"><i id="h-batbar" style="width:100%"></i></div><span>T <b id="h-t">00:00</b></span><span>HOME <b id="h-home">0</b> m</span></div>
@@ -88,7 +89,7 @@
         <div class="ctrl"><h3>الإعدادات</h3>
           <label for="s-level">مستوى المساعدة<select id="s-level"><option value="0">مبتدئ</option><option value="1" selected>متوسط</option><option value="2">متقدم</option></select></label>
           <label for="s-mode">وضع العصي<select id="s-mode"><option value="2" selected>Mode 2</option><option value="1">Mode 1</option></select></label>
-          <label for="s-cam">الكاميرا<select id="s-cam"><option value="chase">مطاردة</option><option value="pilot">منظور الطيار</option><option value="fpv">FPV</option></select></label>
+          <label for="s-cam">الكاميرا<select id="s-cam"><option value="chase">مطاردة</option><option value="gimbal">كاميرا الدرون</option><option value="fpv">FPV</option><option value="pilot">منظور الطيار</option></select></label>
           <label for="s-touch">تحكم باللمس<select id="s-touch"><option value="auto">تلقائي</option><option value="on">تشغيل</option><option value="off">إيقاف</option></select></label>
         </div>
         <div class="pad-st" id="padst">لم تُوصل يد تحكم. وصّلها واضغط أي زر.</div>
@@ -100,7 +101,7 @@
       <div class="pg-grid">
         <div><b>🎮 بلايستيشن (PS4 / PS5)</b><ol><li><b>بالسلك:</b> وصّلها بمنفذ USB.</li><li><b>بالبلوتوث:</b> اضغط زر PS مع Share (أو Create في PS5) حتى يرمش الضوء، ثم اقترنها من إعدادات البلوتوث في جهازك.</li><li>ارجع للمحاكي واضغط أي زر.</li></ol></div>
         <div><b>🎮 إكس بوكس</b><ol><li><b>بالسلك:</b> وصّلها بمنفذ USB.</li><li><b>بالبلوتوث:</b> شغّلها بزر Xbox، ثم اضغط زر الاقتران أعلى اليد حتى يرمش الشعار، واقترنها من إعدادات البلوتوث.</li><li>ارجع للمحاكي واضغط أي زر.</li></ol></div>
-        <div><b>⌨️ الأزرار</b><ul><li>العصا اليسرى: الدفع والدوران (Mode 2)</li><li>العصا اليمنى: التقدّم والميل</li><li>✕ / A: تسليح · □ / X: الكاميرا</li><li>△ / Y: إعادة المهمة</li></ul><p class="note">وتقدر تشبكها بالجوال بالبلوتوث كذلك.</p></div>
+        <div><b>⌨️ الأزرار</b><ul><li>العصا اليسرى: الدفع والدوران (Mode 2)</li><li>العصا اليمنى: التقدّم والميل</li><li>✕ / A: تسليح · □ / X: الكاميرا</li><li>△ / Y: إعادة المهمة</li><li>L1 / R1 (LB / RB): إمالة كاميرا الدرون</li></ul><p class="note">وتقدر تشبكها بالجوال بالبلوتوث كذلك.</p></div>
       </div>
     </div>
     </div>

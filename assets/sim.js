@@ -96,7 +96,7 @@ window.Sim=(()=>{
   if(m.id==='wind'){M.objs.push(ballAt(0,4,-4,2,'#d8bf86',.15))}
   if(m.id==='rth'){S.pos.set(55,18,-60);S.onGround=false;S.armed=true;S.bat=18;S.yaw=Math.atan2(55,-60);M.objs.push(ringAt(0,.08,0,1.5,'#7cd39b'));const bc=new THREE.Mesh(new THREE.CylinderGeometry(.06,.06,20,6),new THREE.MeshBasicMaterial({color:'#7cd39b',transparent:true,opacity:.5}));bc.position.set(0,10,0);markers.add(bc)}
   markActive();renderMissions();
-  hud.obj.firstChild.nodeValue=m.title+': '+m.brief;
+  {const ot=hud.obj.querySelector('.ot');ot.textContent=m.title;const ob=document.createElement('span');ob.className='ob';ob.textContent=': '+m.brief;ot.appendChild(ob);const hb=document.getElementById('h-brief');if(hb)hb.innerHTML='<b>'+m.title+'</b> · '+m.brief;}
   if(m.id!=='rth')flash('اضغط مسافة أو زر ✕ / A للتسليح');
  }
  function markActive(){if(!M.pts)return;M.pts.forEach((p,i)=>{const on=i===M.i;p.o.traverse(o=>{if(o.material&&o.material.color){o.material.color.set(i<M.i?'#7cd39b':on?'#ff8f45':'#8a7f66');if(o.material.opacity!==undefined&&o.material.transparent)o.material.opacity=on?.35:.15}})})}

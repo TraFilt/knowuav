@@ -23,7 +23,7 @@
 ```sql
 update public.profiles set is_admin = true where email = 'TraFilt.store@gmail.com';
 ```
-ثم افتح `/admin` في الموقع: مراجعة الإيصالات، وإدارة المشتركين، وإدخال بيانات التحويل (الآيبان و STC Pay).
+ثم افتح `/admin` في الموقع: مراجعة الإيصالات، وإدارة المستخدمين، وإدخال بيانات التحويل (الآيبان و STC Pay).
 
 ## ٥) الدخول بقوقل (عندما تكون جاهزاً)
 1. console.cloud.google.com ← APIs & Services ← Credentials ← أنشئ **OAuth client ID** من نوع Web application.
@@ -31,8 +31,8 @@ update public.profiles set is_admin = true where email = 'TraFilt.store@gmail.co
 3. انسخ Client ID و Secret إلى Supabase ← Authentication ← Providers ← **Google** ← Enable.
 4. في `assets/config.js` غيّر `GOOGLE_ENABLED: false` إلى `true` وارفع الملف مرة ثانية على GitHub.
 
-## كيف يعمل الاشتراك
-المستخدم يسجّل ← يحوّل ٢٥ ريال ← يرفع الإيصال ← يتفعّل حسابه فوراً لمدة ٣٦٥ يوماً.
+## كيف يعمل تفعيل الحساب
+المستخدم يسجّل ← يحوّل ٢٥ ريال ← يرفع الإيصال ← يتفعّل حسابه فوراً وبشكل دائم (دفعة واحدة).
 أنت تراجع الإيصالات من `/admin`: «قبول» أو «رفض وإيقاف الحساب».
 
 ## هيكل الملفات

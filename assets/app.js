@@ -147,13 +147,13 @@ function lessonState(l){
 }
 function statusCard(){
   const pr = S.profile;
-  if(pr.blocked) return `<div class="card status blocked"><div><h2>تم إيقاف حسابك</h2><p>تم إيقاف الاشتراك بسبب مشكلة في إيصال التحويل. تواصل معنا لحل المشكلة.</p></div><a class="btn" href="https://wa.me/${K.WHATSAPP}" target="_blank" rel="noopener">تواصل عبر واتساب</a></div>`;
+  if(pr.blocked) return `<div class="card status blocked"><div><h2>تم إيقاف حسابك</h2><p>تم إيقاف الحساب بسبب مشكلة في إيصال التحويل. تواصل معنا لحل المشكلة.</p></div><a class="btn" href="https://wa.me/${K.WHATSAPP}" target="_blank" rel="noopener">تواصل عبر واتساب</a></div>`;
   if(access()){
     const done = S.catalog.filter(l => lessonState(l) === 'done').length, n = S.catalog.length || 1;
-    return `<div class="card status"><div><div class="eyebrow">اشتراكك فعّال</div><h2>أهلاً ${esc((pr.full_name||'').split(' ')[0] || '')}</h2><p>اشتراكك فعّال حتى ${fmtDate(pr.active_until)}.</p></div>
+    return `<div class="card status"><div><div class="eyebrow">حسابك مفعّل</div><h2>أهلاً ${esc((pr.full_name||'').split(' ')[0] || '')}</h2><p>كل الدروس والاختبارات والمحاكي مفتوحة لك.</p></div>
       <div class="prog-ring"><svg width="64" height="64" viewBox="0 0 64 64"><circle cx="32" cy="32" r="27" fill="none" stroke="#26312a" stroke-width="6"/><circle cx="32" cy="32" r="27" fill="none" stroke="#d8bf86" stroke-width="6" stroke-linecap="round" stroke-dasharray="${(done/n*169.6).toFixed(1)} 170" transform="rotate(-90 32 32)"/></svg><div><b>${AR(done)}/${AR(n)}</b><div class="note">دروس مكتملة</div></div></div></div>`;
   }
-  return `<div class="card status pay"><div><div class="eyebrow">حسابك مجاني</div><h2>افتح كل الدروس والمحاكي</h2><p>اشتراك سنة كاملة بـ ${AR(S.settings.price || K.PRICE)} ريال. تحوّل، ترفع الإيصال، ويتفعّل فوراً.</p></div><a class="btn pri" href="#pay">اشترك الآن</a></div>`;
+  return `<div class="card status pay"><div><div class="eyebrow">حسابك مجاني</div><h2>افتح كل الدروس والمحاكي</h2><p>فعّل حسابك بـ ${AR(S.settings.price || K.PRICE)} ريال لمرة واحدة فقط. تحوّل، ترفع الإيصال، ويتفعّل فوراً.</p></div><a class="btn pri" href="#pay">فعّل حسابك</a></div>`;
 }
 function vHome(){
   show('home');
@@ -169,13 +169,13 @@ function vHome(){
       const ls = S.catalog.filter(l => l.level === lv.id);
       return `<div><div class="level-h"><span class="n">0${lv.id}</span><h3>${esc(lv.title)}</h3><span class="en">${esc(lv.en)}</span><p>${esc(lv.descr)}</p></div>
         <div class="lessons">${ls.map(l => { const st = lessonState(l), p = S.progress[l.id];
-          return `<a class="lcard ${st==='lock'?'locked':''}" href="#l/${l.id}"><div class="top"><span>${AR(l.level)}.${AR(l.ord)} · ${AR(l.mins)} د</span>${st==='done' ? `<span class="chip ok">✓ ${AR(p.score)}/${AR(p.total)}</span>` : l.is_free && !access() ? '<span class="chip ok">مجاني</span>' : st==='lock' ? '<span class="chip warn">🔒 للمشتركين</span>' : ''}</div><h4>${esc(l.title)}</h4><div class="hook">${esc(l.hook||'')}</div></a>`; }).join('')}</div></div>`;
+          return `<a class="lcard ${st==='lock'?'locked':''}" href="#l/${l.id}"><div class="top"><span>${AR(l.level)}.${AR(l.ord)} · ${AR(l.mins)} د</span>${st==='done' ? `<span class="chip ok">✓ ${AR(p.score)}/${AR(p.total)}</span>` : l.is_free && !access() ? '<span class="chip ok">مجاني</span>' : st==='lock' ? '<span class="chip warn">🔒 يحتاج تفعيل</span>' : ''}</div><h4>${esc(l.title)}</h4><div class="hook">${esc(l.hook||'')}</div></a>`; }).join('')}</div></div>`;
     }).join('')}</div>`;
 }
 
 // ---------------- lesson ----------------
 function paywall(title){
-  return `<div class="card paywall"><div class="eyebrow">للمشتركين</div><h2>${title || 'هذا المحتوى للمشتركين'}</h2><p>اشتراك سنة كاملة بـ ${AR(S.settings.price || K.PRICE)} ريال يفتح لك كل الدروس والاختبارات والمحاكي والمصطلحات.</p><div class="row" style="justify-content:center"><a class="btn pri" href="#pay">اشترك الآن</a><a class="btn" href="#home">الرجوع للدروس</a></div></div>`;
+  return `<div class="card paywall"><div class="eyebrow">يحتاج تفعيل الحساب</div><h2>${title || 'هذا المحتوى للحسابات المفعّلة'}</h2><p>تفعيل حسابك بـ ${AR(S.settings.price || K.PRICE)} ريال لمرة واحدة يفتح لك كل الدروس والاختبارات والمحاكي والمصطلحات.</p><div class="row" style="justify-content:center"><a class="btn pri" href="#pay">فعّل حسابك</a><a class="btn" href="#home">الرجوع للدروس</a></div></div>`;
 }
 async function getLesson(id){
   if(S.lessons[id]) return S.lessons[id];
@@ -266,7 +266,7 @@ function runQuiz(el, qs, o){
 async function vFinal(){
   show('final');
   const el = $('#v-final');
-  if(!access()){ el.innerHTML = paywall('الاختبار الشامل للمشتركين'); return; }
+  if(!access()){ el.innerHTML = paywall('الاختبار الشامل للحسابات المفعّلة'); return; }
   el.innerHTML = '<div class="loading">جارٍ تجهيز الأسئلة…</div>';
   const { data } = await sb.from('lessons').select('quiz');
   const pool = (data || []).flatMap(r => r.quiz || []).map(q => [Math.random(), q]).sort((a,b) => a[0]-b[0]).slice(0, 15).map(x => x[1]);
@@ -286,7 +286,7 @@ function vSim(){
   show('sim');
   const ok = access();
   $('#sim-wrap').hidden = !ok; $('#sim-lock').hidden = ok;
-  if(!ok){ $('#sim-lock').innerHTML = paywall('المحاكي للمشتركين'); return; }
+  if(!ok){ $('#sim-lock').innerHTML = paywall('المحاكي للحسابات المفعّلة'); return; }
   Sim.enter();
 }
 
@@ -294,7 +294,7 @@ function vSim(){
 async function vGlossary(){
   show('glossary');
   const el = $('#v-glossary');
-  if(!access()){ el.innerHTML = paywall('المصطلحات للمشتركين'); return; }
+  if(!access()){ el.innerHTML = paywall('المصطلحات للحسابات المفعّلة'); return; }
   if(!S.gloss){ el.innerHTML = '<div class="loading">جارٍ التحميل…</div>'; const { data } = await sb.from('glossary').select('term,ar,def').order('id'); S.gloss = data || []; }
   el.innerHTML = `<div class="sec-h"><div><div class="eyebrow">English for Operators</div><h2>المصطلحات</h2><p>${AR(S.gloss.length)} مصطلحاً. استخدم وضع البطاقات لتختبر نفسك.</p></div></div>
     <div class="gl-tools"><input id="gl-q" type="search" placeholder="ابحث بالعربي أو الإنجليزي" aria-label="بحث"><div class="seg" id="gl-m"><button data-m="list" class="on">قائمة</button><button data-m="cards">بطاقات</button></div></div><div class="gl" id="gl"></div>`;
@@ -311,9 +311,9 @@ function vPay(){
   show('pay');
   const el = $('#v-pay'), st = S.settings, price = st.price || K.PRICE;
   if(S.profile.blocked){ el.innerHTML = statusCard(); return; }
-  if(access()){ el.innerHTML = `<div class="card status"><div><div class="eyebrow">اشتراكك فعّال</div><h2>أنت مشترك</h2><p>اشتراكك فعّال حتى ${fmtDate(S.profile.active_until)}. تقدر تجدده قرب انتهائه.</p></div><a class="btn pri" href="#home">إلى الدروس</a></div>`; return; }
+  if(access()){ el.innerHTML = `<div class="card status"><div><div class="eyebrow">حسابك مفعّل</div><h2>كل شي مفتوح لك</h2><p>حسابك مفعّل، وكل الدروس والاختبارات والمحاكي متاحة لك.</p></div><a class="btn pri" href="#home">إلى الدروس</a></div>`; return; }
   const rows = [['البنك', st.bank_name], ['اسم صاحب الحساب', st.account_name], ['الآيبان IBAN', st.iban], ['STC Pay', st.stcpay]].filter(r => r[1]);
-  el.innerHTML = `<div class="sec-h"><div><div class="eyebrow">الاشتراك</div><h2>اشترك سنة كاملة بـ ${AR(price)} ريال</h2><p>حوّل المبلغ، ارفع الإيصال، ويتفعّل حسابك مباشرة.</p></div></div>
+  el.innerHTML = `<div class="sec-h"><div><div class="eyebrow">تفعيل الحساب</div><h2>فعّل حسابك بـ ${AR(price)} ريال</h2><p>دفعة واحدة فقط. حوّل المبلغ، ارفع الإيصال، ويتفعّل حسابك مباشرة.</p></div></div>
   <div class="pay">
     <div class="card bank"><h3 style="font-size:18px;margin-bottom:6px">١ · حوّل ${AR(price)} ريال</h3>
       ${rows.length ? rows.map(([k,v]) => `<div class="kv"><span>${k}</span><b>${esc(v)}</b>${copyBtn(v)}</div>`).join('') : `<p style="color:var(--muted)">بيانات التحويل تُضاف قريباً. تواصل معنا على واتساب <b class="mono" dir="ltr">${K.WHATSAPP_DISPLAY}</b> وسنرسلها لك فوراً.</p>`}
@@ -323,9 +323,9 @@ function vPay(){
       <h3 style="font-size:18px">٢ · ارفع الإيصال</h3>
       <label class="field">اسم المحوِّل كما يظهر في الإيصال<input id="pay-name" autocomplete="name" required></label>
       <label class="drop" id="drop" for="pay-file"><input id="pay-file" type="file" accept="image/*,application/pdf" hidden><div id="drop-t">اضغط لاختيار صورة الإيصال أو ملف PDF<br><span class="note">حتى ٥ ميجابايت</span></div></label>
-      <label class="agree"><input type="checkbox" id="pay-agree"><span>أقرّ بأن الإيصال حقيقي ويخص هذا التحويل، وأوافق على <a href="/terms" target="_blank">الشروط</a> وعلى أن <a href="/refund" target="_blank">الاشتراك غير قابل للاسترجاع</a>. الإيصال غير الصحيح يؤدي لإيقاف الحساب.</span></label>
+      <label class="agree"><input type="checkbox" id="pay-agree"><span>أقرّ بأن الإيصال حقيقي ويخص هذا التحويل، وأوافق على <a href="/terms" target="_blank">الشروط</a> وعلى أن <a href="/refund" target="_blank">المبلغ غير قابل للاسترجاع</a>. الإيصال غير الصحيح يؤدي لإيقاف الحساب.</span></label>
       <div class="err" id="pay-err"></div>
-      <button class="btn pri block" id="pay-go" type="submit" disabled>اشترك الآن</button>
+      <button class="btn pri block" id="pay-go" type="submit" disabled>فعّل حسابك</button>
     </form>
   </div>`;
   el.querySelectorAll('[data-copy]').forEach(b => b.onclick = async () => { try { await navigator.clipboard.writeText(b.dataset.copy); toast('تم النسخ'); } catch(e){ toast('انسخه يدوياً'); } });
@@ -350,12 +350,12 @@ function vPay(){
       const { error } = await sb.rpc('submit_receipt', { p_path: path, p_sender: $('#pay-name').value.trim() });
       if(error) throw error;
       await refreshProfile();
-      toast('تم تفعيل اشتراكك. بالتوفيق!');
+      toast('تم تفعيل حسابك. بالتوفيق!');
       location.hash = '#home';
     } catch(err){
       const m = err.message || String(err);
       $('#pay-err').textContent = /blocked/.test(m) ? 'حسابك موقوف. تواصل مع الدعم.' : /already submitted/.test(m) ? 'رفعت إيصالاً قبل قليل. انتظر دقائق.' : /mime|type/i.test(m) ? 'نوع الملف غير مدعوم. ارفع صورة أو PDF.' : 'تعذّر الرفع: ' + m;
-      b.disabled = false; b.textContent = 'اشترك الآن';
+      b.disabled = false; b.textContent = 'فعّل حسابك';
     }
   };
 }
@@ -372,7 +372,7 @@ async function vAccount(){
       <div class="card" style="display:grid;gap:8px"><h3 style="font-size:18px">بيانات الحساب</h3>
         <div><span class="note">الاسم</span><div>${esc(pr.full_name || '—')}</div></div>
         <div><span class="note">البريد</span><div class="mono" dir="ltr" style="text-align:right">${esc(S.user.email)}</div></div>
-        <div><span class="note">الاشتراك</span><div>${access() ? 'فعّال حتى ' + fmtDate(pr.active_until) : pr.blocked ? 'موقوف' : 'غير مشترك'}</div></div>
+        <div><span class="note">حالة الحساب</span><div>${access() ? 'مفعّل' : pr.blocked ? 'موقوف' : 'غير مفعّل'}</div></div>
       </div>
       <div class="card"><h3 style="font-size:18px;margin-bottom:8px">المدفوعات</h3>
         ${(pays && pays.length) ? `<div class="tbl-wrap"><table class="hist"><tr><th>التاريخ</th><th>المبلغ</th><th>الحالة</th></tr>${pays.map(p => `<tr><td>${fmtDate(p.created_at)}</td><td class="mono">${AR(p.amount ?? '')} ر.س</td><td>${stLbl[p.status]||''}</td></tr>`).join('')}</table></div>` : '<p class="note">لا توجد مدفوعات بعد.</p>'}

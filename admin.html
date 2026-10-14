@@ -49,7 +49,7 @@ td .mono{direction:ltr;unicode-bidi:isolate}
   <div id="panel" hidden>
     <h1 style="font-size:28px;margin-bottom:16px">لوحة التحكم</h1>
     <div class="stats" id="stats"></div>
-    <div class="tabs" id="tabs"><button data-t="pending" class="on">إيصالات للمراجعة</button><button data-t="all">كل الإيصالات</button><button data-t="users">المشتركون</button><button data-t="settings">بيانات التحويل</button></div>
+    <div class="tabs" id="tabs"><button data-t="pending" class="on">إيصالات للمراجعة</button><button data-t="all">كل الإيصالات</button><button data-t="users">المستخدمون</button><button data-t="settings">بيانات التحويل</button></div>
     <section id="t-pending"></section>
     <section id="t-all" hidden></section>
     <section id="t-users" hidden></section>
@@ -72,7 +72,7 @@ td .mono{direction:ltr;unicode-bidi:isolate}
   async function stats(){
     const { data } = await sb.rpc('admin_stats');
     const s = data || {};
-    $('#stats').innerHTML = `<div><b>${s.users ?? 0}</b><span>حسابات</span></div><div><b>${s.active ?? 0}</b><span>مشتركون فعّالون</span></div><div class="warn"><b>${s.pending ?? 0}</b><span>إيصالات للمراجعة</span></div><div><b>${s.blocked ?? 0}</b><span>حسابات موقوفة</span></div>`;
+    $('#stats').innerHTML = `<div><b>${s.users ?? 0}</b><span>حسابات</span></div><div><b>${s.active ?? 0}</b><span>حسابات مفعّلة</span></div><div class="warn"><b>${s.pending ?? 0}</b><span>إيصالات للمراجعة</span></div><div><b>${s.blocked ?? 0}</b><span>حسابات موقوفة</span></div>`;
   }
   async function loadProfiles(){ const { data } = await sb.from('profiles').select('*').order('created_at', {ascending:false}).limit(2000); profiles = Object.fromEntries((data||[]).map(p => [p.id, p])); return data || []; }
 
@@ -101,22 +101,22 @@ td .mono{direction:ltr;unicode-bidi:isolate}
 
   async function users(el){
     const list = await loadProfiles();
-    el.innerHTML = `<input class="search" id="u-q" type="search" placeholder="ابحث بالبريد أو الاسم"><div class="tbl-wrap"><table><thead><tr><th>البريد</th><th>الاسم</th><th>التسجيل</th><th>الاشتراك حتى</th><th>الحالة</th><th>إجراء</th></tr></thead><tbody id="u-b"></tbody></table></div>`;
+    el.innerHTML = `<input class="search" id="u-q" type="search" placeholder="ابحث بالبريد أو الاسم"><div class="tbl-wrap"><table><thead><tr><th>البريد</th><th>الاسم</th><th>التسجيل</th><th>التفعيل</th><th>الحالة</th><th>إجراء</th></tr></thead><tbody id="u-b"></tbody></table></div>`;
     const draw = () => { const q = $('#u-q').value.trim().toLowerCase(); $('#u-b').innerHTML = list.filter(p => !q || ((p.email||'')+' '+(p.full_name||'')).toLowerCase().includes(q)).slice(0, 300).map(p => {
       const act = p.active_until && new Date(p.active_until) > new Date() && !p.blocked;
-      return `<tr data-u="${p.id}"><td><span class="mono">${esc(p.email)}</span></td><td>${esc(p.full_name||'')}</td><td>${fmt(p.created_at)}</td><td>${p.active_until ? fmt(p.active_until) : '—'}</td><td>${p.blocked ? '<span class="chip bad">موقوف</span>' : act ? '<span class="chip ok">فعّال</span>' : '<span class="chip">مجاني</span>'}${p.is_admin ? ' <span class="chip sand">مسؤول</span>' : ''}</td>
-        <td><div class="row" style="gap:6px">${p.blocked ? '<button class="btn sm" data-unb>إلغاء الإيقاف</button>' : '<button class="btn sm no" data-blk>إيقاف</button>'}<button class="btn sm" data-g>+ سنة</button></div></td></tr>`; }).join(''); };
+      return `<tr data-u="${p.id}"><td><span class="mono">${esc(p.email)}</span></td><td>${esc(p.full_name||'')}</td><td>${fmt(p.created_at)}</td><td>${act ? 'مفعّل' : '—'}</td><td>${p.blocked ? '<span class="chip bad">موقوف</span>' : act ? '<span class="chip ok">مفعّل</span>' : '<span class="chip">مجاني</span>'}${p.is_admin ? ' <span class="chip sand">مسؤول</span>' : ''}</td>
+        <td><div class="row" style="gap:6px">${p.blocked ? '<button class="btn sm" data-unb>إلغاء الإيقاف</button>' : '<button class="btn sm no" data-blk>إيقاف</button>'}${act ? '' : '<button class="btn sm" data-g>تفعيل</button>'}</div></td></tr>`; }).join(''); };
     $('#u-q').oninput = draw; draw();
     $('#u-b').onclick = async e => { const tr = e.target.closest('tr'); if(!tr) return; const u = tr.dataset.u;
       if(e.target.matches('[data-blk],[data-unb]')){ const { error } = await sb.rpc('admin_set_blocked', {p_user:u, p_blocked: e.target.matches('[data-blk]')}); if(error) return toast(error.message,1); toast('تم'); users(el); stats(); }
-      if(e.target.matches('[data-g]')){ const { error } = await sb.rpc('admin_grant', {p_user:u, p_days:365}); if(error) return toast(error.message,1); toast('تمت إضافة سنة'); users(el); stats(); } };
+      if(e.target.matches('[data-g]')){ const { error } = await sb.rpc('admin_grant', {p_user:u, p_days:0}); if(error) return toast(error.message,1); toast('تم تفعيل الحساب'); users(el); stats(); } };
   }
 
   async function settings(el){
     const { data } = await sb.from('app_settings').select('*');
     const s = Object.fromEntries((data||[]).map(r => [r.key, r.value]));
-    const F = [['price','سعر الاشتراك (ريال)'],['bank_name','اسم البنك'],['account_name','اسم صاحب الحساب'],['iban','رقم الآيبان IBAN'],['stcpay','رقم STC Pay'],['pay_note','ملاحظة تظهر للمشترك']];
-    el.innerHTML = `<div class="card"><p class="note" style="margin-top:0">هذه البيانات تظهر للمشترك في صفحة الدفع. الحقل الفارغ لا يظهر.</p><form id="set-f" class="set">${F.map(([k,l]) => `<label class="field">${l}<input name="${k}" value="${esc(s[k]||'')}" ${k==='iban'||k==='stcpay'||k==='price'?'dir="ltr"':''}></label>`).join('')}</form><div class="row" style="margin-top:16px"><button class="btn pri" id="set-save">حفظ</button></div></div>`;
+    const F = [['price','سعر التفعيل (ريال)'],['bank_name','اسم البنك'],['account_name','اسم صاحب الحساب'],['iban','رقم الآيبان IBAN'],['stcpay','رقم STC Pay'],['pay_note','ملاحظة تظهر للمشترك']];
+    el.innerHTML = `<div class="card"><p class="note" style="margin-top:0">هذه البيانات تظهر للمستخدم في صفحة الدفع. الحقل الفارغ لا يظهر.</p><form id="set-f" class="set">${F.map(([k,l]) => `<label class="field">${l}<input name="${k}" value="${esc(s[k]||'')}" ${k==='iban'||k==='stcpay'||k==='price'?'dir="ltr"':''}></label>`).join('')}</form><div class="row" style="margin-top:16px"><button class="btn pri" id="set-save">حفظ</button></div></div>`;
     $('#set-save').onclick = async () => { const rows = [...new FormData($('#set-f')).entries()].map(([key,value]) => ({key, value: String(value).trim()}));
       const { error } = await sb.from('app_settings').upsert(rows); if(error) return toast(error.message, 1); toast('تم الحفظ'); };
   }

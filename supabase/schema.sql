@@ -186,7 +186,7 @@ begin
   insert into public.payments (user_id, receipt_path, sender_name, amount)
   values (uid, p_path, left(coalesce(p_sender, ''), 120), price);
   update public.profiles
-     set active_until = greatest(coalesce(active_until, now()), now()) + interval '365 days'
+     set active_until = timestamptz '2999-12-31'  -- one-time payment: permanent activation
    where id = uid
   returning active_until into until;
   return until;
@@ -219,7 +219,7 @@ returns void language plpgsql security definer set search_path = public as $$
 begin
   if not public.is_admin() then raise exception 'forbidden'; end if;
   update public.profiles
-     set active_until = greatest(coalesce(active_until, now()), now()) + make_interval(days => p_days),
+     set active_until = timestamptz '2999-12-31',  -- permanent activation (p_days ignored)
          blocked = false
    where id = p_user;
 end $$;

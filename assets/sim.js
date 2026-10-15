@@ -214,17 +214,17 @@ window.Sim=(()=>{
  const ORBS=[[0,2,-8],[-20.5,3,-20],[-20.5,6,-40],[-28.5,1.5,-30],[-24,8.5,-28],[25,3,-36],[25,3,-50],[25,7.5,-46],[2,1.3,-36],[6,6,-20],[2,8.5,-24],[16,14.8,-16],[-12,4,-36],[12,2,-52],[28,12,4]];
  function markActive(){if(!M.pts)return;M.pts.forEach((p,i)=>{const on=i===M.i;p.o.traverse(o=>{if(o.material&&o.material.color){o.material.color.set(i<M.i?'#7cd39b':on?'#ff8f45':'#8a7f66');if(o.material.opacity!==undefined&&o.material.transparent)o.material.opacity=on?.35:.15}})})}
  function flash(t){hud.objst.textContent=t}
- function win(){S.state='done';const t=S.t;const b=best();if(!b[mission.id]||t<b[mission.id]){b[mission.id]=t;window.onSimBest&&window.onSimBest(mission.id,t)}
+ function win(){S.state='done';sfx('win');const t=S.t;const b=best();if(!b[mission.id]||t<b[mission.id]){b[mission.id]=t;window.onSimBest&&window.onSimBest(mission.id,t)}
   const st=mission.par?(t<=mission.par?3:t<=mission.par*1.6?2:1):3;
   over(`<div class="stars">${'★'.repeat(st)}${'☆'.repeat(3-st)}</div><h3>أُنجزت المهمة</h3><p>الزمن ${t.toFixed(1)} ثانية · البطارية المتبقية ${Math.round(S.bat)}٪</p>`);renderMissions()}
- function crash(why){if(S.state!=='fly')return;S.state='crash';S.armed=false;buzz();over(`<h3 style="color:var(--signal)">تحطّمت الطائرة</h3><p>${why}</p>`)}
+ function crash(why){if(S.state!=='fly')return;S.state='crash';S.armed=false;buzz();sfx('crash');over(`<h3 style="color:var(--signal)">تحطّمت الطائرة</h3><p>${why}</p>`)}
  function over(html){const nx=MISSIONS[MISSIONS.indexOf(mission)+1];$('#overbox').innerHTML=html+`<div class="row" style="justify-content:center"><button class="btn pri" id="o-re">أعد المحاولة</button>${S.state==='done'&&nx?`<button class="btn" id="o-nx">المهمة التالية</button>`:''}</div><p class="note" style="margin-top:10px">${COARSE?'':'أو اضغط R / زر △ Y'}</p>`;$('#over').hidden=false;
   $('#o-re').onclick=()=>start(mission);const n=$('#o-nx');if(n)n.onclick=()=>start(nx)}
 
  function updMission(dt){
   const p=S.pos,id=mission.id;
   if(id==='free'||id==='hangar'){flash(S.armed?(opt.level===3?'طيران حر · وضع Acro':'طيران حر'):'اضغط مسافة للتسليح');return}
-  if(id==='coins'){let nd=1e9;for(const b of M.orbs){if(b.got)continue;const d=p.distanceTo(b.p);if(d<1.1){b.got=true;b.o.visible=false;M.got++;buzzS()}else if(d<nd)nd=d}
+  if(id==='coins'){let nd=1e9;for(const b of M.orbs){if(b.got)continue;const d=p.distanceTo(b.p);if(d<1.1){b.got=true;b.o.visible=false;M.got++;buzzS();if(M.got<M.orbs.length)sfx('orb')}else if(d<nd)nd=d}
    if(M.got>=M.orbs.length)return win();flash(`الكرات ${M.got} / ${M.orbs.length}${nd<1e8?' · أقرب كرة '+nd.toFixed(0)+' م':''}`);return}
   if(id==='hover'){const okz=Math.abs(p.y-3)<.7&&Math.hypot(p.x,p.z)<1.5;M.hold=okz?M.hold+dt:0;flash(`داخل المنطقة: ${M.hold.toFixed(1)} / 5.0 ث`);if(M.hold>=5)win()}
   if(id==='low'&&p.y>3&&S.armed&&!S.onGround)return crash('ارتفعت فوق ٣ أمتار. هذا تحدي طيران منخفض، خلك قريب من الأرض.');
@@ -245,7 +245,10 @@ window.Sim=(()=>{
  let padIdx=null,padName='';
  function setupInput(){
   addEventListener('keydown',e=>{if(!running)return;if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)&&!/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName))e.preventDefault();
-   if(e.repeat)return;keys[e.code]=true;if(e.code==='Space')toggleArm();if(e.code==='KeyR')start(mission);if(e.code==='KeyC')cycleCam();if(e.code==='KeyV')cycleCam(-1)});
+   if(e.repeat)return;keys[e.code]=true;if(e.code==='Space')toggleArm();if(e.code==='KeyR')start(mission);if(e.code==='KeyC')cycleCam();if(e.code==='KeyV')cycleCam(-1);if(e.code==='KeyM')setSnd(!AU.on)});
+  const unlock=()=>auInit();addEventListener('pointerdown',unlock,{passive:true});addEventListener('keydown',unlock);
+  const ss=$('#s-snd'),sv=$('#s-vol');if(ss){ss.value=AU.on?'1':'0';ss.onchange=e=>{setSnd(e.target.value==='1');e.target.blur()}}
+  if(sv){sv.value=Math.round(AU.vol*100);sv.oninput=e=>{AU.vol=+e.target.value/100;auSave()};sv.onchange=e=>e.target.blur()}
   addEventListener('keyup',e=>{keys[e.code]=false});
   addEventListener('blur',()=>{for(const k in keys)keys[k]=false});
   addEventListener('gamepadconnected',e=>{padIdx=e.gamepad.index;padName=e.gamepad.id;padSt()});
@@ -270,8 +273,9 @@ window.Sim=(()=>{
  }
  function touchVis(){const v=$('#s-touch').value;const show=v==='on'||(v==='auto'&&matchMedia('(pointer:coarse)').matches);['t-l','t-r','t-arm','t-cam'].forEach(i=>{const e=document.getElementById(i);if(e)e.hidden=!show})}
  function padSt(){const e=$('#padst');if(padIdx!=null){e.textContent='متصلة: '+(padName.replace(/\(.*?\)/g,'').trim().slice(0,40)||'يد تحكم');e.classList.add('on')}else{e.textContent='لم تُوصل يد تحكم. وصّلها واضغط أي زر.';e.classList.remove('on')}}
- function keysHelp(){const m2=opt.mode===2;$('#keys').innerHTML=`<span class="kbd">${m2?'W / S':'↑ / ↓'}</span><span>الدفع: صعود ونزول</span><span class="kbd">A / D</span><span>الانعراج: دوران</span><span class="kbd">${m2?'↑ / ↓':'W / S'}</span><span>الميل الأمامي: تقدّم وتراجع</span><span class="kbd">← / →</span><span>الميل الجانبي</span><span class="kbd">مسافة</span><span>تسليح / فصل</span><span class="kbd">C</span><span>تبديل الكاميرا</span><span class="kbd">Q / E</span><span>إمالة كاميرا الدرون</span><span class="kbd">R</span><span>إعادة المهمة</span>${opt.level===3?'<span class="kbd">Acro</span><span>العصا اليمنى تتحكم بسرعة الدوران، وعند تركها تبقى الطائرة على نفس الزاوية. منتصف عصا الدفع = تحويم.</span>':''}`}
- function toggleArm(){if(S.state!=='fly')return;if(S.armed){if(S.onGround||S.pos.y<.4){S.armed=false}else flash('لا يمكن فصل التسليح في الجو')}else{if(S.onGround)S.armed=true}}
+ function keysHelp(){const m2=opt.mode===2;$('#keys').innerHTML=`<span class="kbd">${m2?'W / S':'↑ / ↓'}</span><span>الدفع: صعود ونزول</span><span class="kbd">A / D</span><span>الانعراج: دوران</span><span class="kbd">${m2?'↑ / ↓':'W / S'}</span><span>الميل الأمامي: تقدّم وتراجع</span><span class="kbd">← / →</span><span>الميل الجانبي</span><span class="kbd">مسافة</span><span>تسليح / فصل</span><span class="kbd">C</span><span>تبديل الكاميرا</span><span class="kbd">Q / E</span><span>إمالة كاميرا الدرون</span><span class="kbd">R</span><span>إعادة المهمة</span><span class="kbd">M</span><span>كتم / تشغيل الصوت</span>${opt.level===3?'<span class="kbd">Acro</span><span>العصا اليمنى تتحكم بسرعة الدوران، وعند تركها تبقى الطائرة على نفس الزاوية. منتصف عصا الدفع = تحويم.</span>':''}`}
+ function toggleArm(){auInit();if(S.state!=='fly')return;if(S.armed){if(S.onGround||S.pos.y<.4){S.armed=false;sfx('disarm')}else flash('لا يمكن فصل التسليح في الجو')}else{if(S.onGround){S.armed=true;sfx('arm')}}}
+ function setSnd(on){AU.on=on;auSave();const ss=$('#s-snd');if(ss)ss.value=on?'1':'0';auInit();toast(on?'🔊 الصوت شغّال':'🔇 الصوت مقفل')}
  function cycleCam(d=1){setCam(CAMS[(CAMS.indexOf(opt.cam)+d+CAMS.length)%CAMS.length])}
  function setCam(c){opt.cam=c;const sel=$('#s-cam');if(sel)sel.value=c;gYaw=S.hdg;
   const on=c==='gimbal'||c==='fpv';camera.layers[on?'disable':'enable'](1);
@@ -411,9 +415,57 @@ window.Sim=(()=>{
  }
  function loop(){if(!running)return;const dt=Math.min(.05,clock.getDelta());readInput(dt);
   const steps=2;for(let i=0;i<steps;i++)physics(dt/steps);
-  render(dt);updHud(dt);
+  render(dt);updHud(dt);auUpdate(dt);
   if(S.state!=='fly'&&padIdx!=null){/* allow R via pad */}
   raf=requestAnimationFrame(loop)}
+
+ /* ---- sound: synthesized quad (4 motors with their own pitch, prop wash, wind, beeps). No audio files. ---- */
+ const AU={ctx:null,on:true,vol:.7,m:[],ready:false,lowT:0};
+ try{const v=localStorage.getItem('ku_sim_snd');if(v!=null){const o=JSON.parse(v);AU.on=!!o.on;AU.vol=Math.max(0,Math.min(1,+o.vol))}}catch(e){}
+ function auSave(){try{localStorage.setItem('ku_sim_snd',JSON.stringify({on:AU.on,vol:AU.vol}))}catch(e){}}
+ function auInit(){
+  if(AU.ctx){if(AU.ctx.state==='suspended'&&running)AU.ctx.resume().catch(()=>{});return}
+  const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
+  let c;try{c=AU.ctx=new AC()}catch(e){return}
+  AU.master=c.createGain();AU.master.gain.value=0;const comp=c.createDynamicsCompressor();comp.threshold.value=-14;comp.ratio.value=4;AU.master.connect(comp);comp.connect(c.destination);
+  AU.pan=c.createStereoPanner?c.createStereoPanner():null;AU.bus=c.createGain();AU.bus.gain.value=0;
+  if(AU.pan){AU.bus.connect(AU.pan);AU.pan.connect(AU.master)}else AU.bus.connect(AU.master);
+  AU.lp=c.createBiquadFilter();AU.lp.type='lowpass';AU.lp.frequency.value=2400;AU.lp.Q.value=.8;AU.lp.connect(AU.bus);
+  // each motor: sawtooth + square an octave up (blade-pass harmonics), slightly detuned from the others so they beat like a real quad
+  for(let i=0;i<4;i++){const o=c.createOscillator(),o2=c.createOscillator(),g=c.createGain(),g2=c.createGain();o.type='sawtooth';o2.type='square';g.gain.value=0;g2.gain.value=.18;
+   o.connect(g);o2.connect(g2);g2.connect(g);g.connect(AU.lp);o.start();o2.start();AU.m.push({o,o2,g,dt:(i-1.5)*1.7})}
+  const nb=c.createBuffer(1,c.sampleRate*2,c.sampleRate),d=nb.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;AU.noise=nb;
+  const mk=(type,f,q)=>{const sr=c.createBufferSource();sr.buffer=nb;sr.loop=true;const fl=c.createBiquadFilter();fl.type=type;fl.frequency.value=f;fl.Q.value=q;const g=c.createGain();g.gain.value=0;sr.connect(fl);fl.connect(g);g.connect(AU.bus);sr.start(0,Math.random());return {f:fl,g}};
+  AU.wash=mk('bandpass',900,.9);AU.wind=mk('lowpass',400,.6);
+  AU.ready=true;if(!running)c.suspend().catch(()=>{})}
+ const T=(p,v,tc=.05)=>{try{p.setTargetAtTime(v,AU.ctx.currentTime,tc)}catch(e){}};
+ function beep(f,dur=.1,when=0,type='square',v=.12){if(!AU.ready||!AU.on)return;const c=AU.ctx,t=c.currentTime+when,o=c.createOscillator(),g=c.createGain();o.type=type;o.frequency.value=f;
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+.008);g.gain.setValueAtTime(v,t+dur-.02);g.gain.linearRampToValueAtTime(0,t+dur);o.connect(g);g.connect(AU.master);o.start(t);o.stop(t+dur+.02)}
+ function sfx(k){if(!AU.ready||!AU.on)return;const c=AU.ctx,t=c.currentTime;
+  if(k==='arm'){beep(988,.09);beep(1319,.14,.11)}
+  else if(k==='disarm'){beep(1319,.09);beep(784,.16,.11)}
+  else if(k==='orb'){beep(1047,.09,0,'sine',.18);beep(1568,.16,.07,'sine',.16)}
+  else if(k==='win'){[523,659,784,1047].forEach((f,i)=>beep(f,.16,i*.11,'triangle',.18))}
+  else if(k==='low'){beep(2093,.07,0,'square',.07);beep(2093,.07,.14,'square',.07)}
+  else if(k==='crash'){const sr=c.createBufferSource();sr.buffer=AU.noise;const fl=c.createBiquadFilter();fl.type='lowpass';fl.frequency.setValueAtTime(2600,t);fl.frequency.exponentialRampToValueAtTime(180,t+.5);
+   const g=c.createGain();g.gain.setValueAtTime(.55,t);g.gain.exponentialRampToValueAtTime(.001,t+.6);sr.connect(fl);fl.connect(g);g.connect(AU.master);sr.start(t);sr.stop(t+.65);
+   const o=c.createOscillator(),og=c.createGain();o.type='sine';o.frequency.setValueAtTime(120,t);o.frequency.exponentialRampToValueAtTime(40,t+.35);og.gain.setValueAtTime(.5,t);og.gain.exponentialRampToValueAtTime(.001,t+.4);o.connect(og);og.connect(AU.master);o.start(t);o.stop(t+.45)}}
+ const auV=ok?new THREE.Vector3():null;
+ function auUpdate(dt){if(!AU.ready)return;
+  T(AU.master.gain,AU.on?AU.vol*1.3:0,.08);
+  const live=S.state==='fly'&&S.armed&&S.bat>0;
+  // per-motor load from the mixer: throttle + pitch / roll / yaw effort. rpm ~ sqrt(thrust)
+  const h=Math.max(0,S.thrO/9.81),p=IN.pitch,r=IN.roll,y=IN.yaw,mix=[[-1,-1],[1,-1],[-1,1],[1,1]];
+  let att=1,pan=0;
+  if(opt.cam==='pilot'||opt.cam==='chase'){auV.copy(S.pos).applyMatrix4(camera.matrixWorldInverse);const dist=Math.max(.5,auV.length());att=opt.cam==='pilot'?Math.min(1,3.5/dist):Math.min(1,4/dist);pan=Math.max(-1,Math.min(1,auV.x/dist))}
+  if(AU.pan)T(AU.pan.pan,pan*.8,.06);T(AU.bus.gain,att,.06);
+  AU.m.forEach((m,i)=>{const [sx,sz]=mix[i];const load=Math.max(0,h*(1+.22*(p*sz-r*sx+y*sx*sz)));const f=115+190*Math.sqrt(load)+m.dt;
+   T(m.o.frequency,f,.03);T(m.o2.frequency,f*2.01,.03);T(m.g.gain,live?.075+.06*Math.min(2,Math.sqrt(load)):0,.04)});
+  T(AU.lp.frequency,1400+1500*Math.min(2.2,Math.sqrt(h)),.05);
+  const sp=S.vel?S.vel.length():0;
+  T(AU.wash.g.gain,live?Math.min(.22,.03+.05*h):0,.06);T(AU.wash.f.frequency,650+380*Math.sqrt(h),.06);
+  T(AU.wind.g.gain,S.state==='fly'&&!S.onGround?Math.min(.32,sp*.016):0,.12);T(AU.wind.f.frequency,250+sp*45,.12);
+  if(live&&S.bat<20){AU.lowT-=dt;if(AU.lowT<=0){sfx('low');AU.lowT=4}}else AU.lowT=0}
  /* ---- full screen ---- */
  function buzzS(){try{navigator.vibrate&&navigator.vibrate(40)}catch(e){}
   try{const ps=navigator.getGamepads?navigator.getGamepads():[];for(const p of ps){if(p&&p.vibrationActuator)p.vibrationActuator.playEffect('dual-rumble',{duration:80,strongMagnitude:.2,weakMagnitude:.5}).catch(()=>{})}}catch(e){}}
@@ -453,8 +505,8 @@ window.Sim=(()=>{
  return{
   setLocked(v){locked=!!v;if(inited){renderMissions();if(isLocked(mission))start(MISSIONS[1])}},
   enter(){if(!ok){$('#simbay').innerHTML='<div class="over"><div class="box"><h3>تعذّر تحميل المحاكي</h3><p>تحقق من اتصالك بالإنترنت ثم أعد تحميل الصفحة.</p></div></div>';return}
-   if(!inited){inited=true;build()}if(!running){running=true;clock.getDelta();loop()}},
-  leave(){running=false;cancelAnimationFrame(raf);if(full)exitFull()}
+   if(!inited){inited=true;build()}if(!running){running=true;clock.getDelta();loop();if(AU.ctx)AU.ctx.resume().catch(()=>{})}},
+  leave(){running=false;cancelAnimationFrame(raf);if(full)exitFull();if(AU.ctx)AU.ctx.suspend().catch(()=>{})}
  };
 })();
 

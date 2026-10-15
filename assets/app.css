@@ -199,6 +199,7 @@ table.cmp{border-collapse:collapse;width:100%;font-size:14px;min-width:520px}
 .mbtn em{font-style:normal;font-size:11px;font-family:var(--f-mono);color:var(--sand-dim);grid-column:1/-1}
 .ctrl{display:grid;gap:8px}
 .ctrl label{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:14px;color:var(--muted)}
+.ctrl input[type=range]{accent-color:var(--sand);width:130px;cursor:pointer}
 .ctrl select{background:var(--ground);border:1px solid var(--line2);color:var(--text);border-radius:6px;padding:4px 8px;font:inherit;font-size:13px}
 .pad-st{font-size:13px;padding:8px 10px;border-radius:8px;background:var(--ground);border:1px solid var(--line);color:var(--muted)}
 .pad-st.on{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 45%,transparent)}

@@ -79,3 +79,8 @@ footer.site .ltr{direction:ltr;unicode-bidi:isolate;display:inline-block}
 .doc .upd{color:var(--faint);font-size:13px;font-family:var(--f-mono)}
 
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+s.was{color:var(--muted);text-decoration-color:var(--signal);text-decoration-thickness:2px;font-size:.62em;margin-inline:.25em;font-weight:400}
+.offerbar{display:flex;justify-content:center;align-items:center;gap:6px 16px;flex-wrap:wrap;background:linear-gradient(90deg,#ff8f45,#f2b25c);color:#1a0d02;font-size:14px;padding:8px 14px;text-align:center;text-decoration:none;position:relative;z-index:60}
+.offerbar b{font-weight:700}.offerbar s{opacity:.7;text-decoration-thickness:2px}
+.offerbar .cd{background:#1a0d0214;border-radius:999px;padding:2px 10px}

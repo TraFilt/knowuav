@@ -348,8 +348,8 @@ table.t tbody tr:hover{background:#ffffff06}
   async function settings(el){
     const { data } = await sb.from('app_settings').select('*');
     const s = Object.fromEntries((data || []).map(r => [r.key, r.value]));
-    const F = [['price','سعر التفعيل (ريال)'],['bank_name','اسم البنك'],['account_name','اسم صاحب الحساب'],['iban','رقم الآيبان IBAN'],['stcpay','رقم STC Pay'],['pay_note','ملاحظة تظهر للمشترك']];
-    el.innerHTML = `<div class="card"><p class="note" style="margin-top:0">هذه البيانات تظهر للمستخدم في صفحة الدفع. الحقل الفارغ لا يظهر.</p><form id="set-f" class="set">${F.map(([k, l]) => `<label class="field">${l}<input name="${k}" value="${esc(s[k] || '')}" ${k === 'iban' || k === 'stcpay' || k === 'price' ? 'dir="ltr"' : ''}></label>`).join('')}</form><div class="row" style="margin-top:16px"><button class="btn pri" id="set-save">حفظ</button></div></div>`;
+    const F = [['price','سعر التفعيل (ريال)'],['bank_name','اسم البنك'],['account_name','اسم صاحب الحساب'],['iban','رقم الآيبان IBAN'],['stcpay','رقم STC Pay'],['pay_note','ملاحظة تظهر للمشترك'],['offer_price','سعر العرض (ريال) · فاضي = بدون عرض'],['offer_until','نهاية العرض مثال 2026-10-16T02:00:00+03:00']];
+    el.innerHTML = `<div class="card"><p class="note" style="margin-top:0">هذه البيانات تظهر للمستخدم في صفحة الدفع. الحقل الفارغ لا يظهر.</p><form id="set-f" class="set">${F.map(([k, l]) => `<label class="field">${l}<input name="${k}" value="${esc(s[k] || '')}" ${['iban','stcpay','price','offer_price','offer_until'].includes(k) ? 'dir="ltr"' : ''}></label>`).join('')}</form><div class="row" style="margin-top:16px"><button class="btn pri" id="set-save">حفظ</button></div></div>`;
     $('#set-save').onclick = async () => { const rows = [...new FormData($('#set-f')).entries()].map(([key, value]) => ({key, value: String(value).trim()}));
       const { error } = await sb.from('app_settings').upsert(rows); if(error) return toast(error.message, 1); toast('تم الحفظ'); };
   }

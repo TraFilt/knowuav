@@ -218,7 +218,7 @@ function statusCard(){
     return `<div class="card status"><div><div class="eyebrow">حسابك مفعّل</div><h2>أهلاً ${esc((pr.full_name||'').split(' ')[0] || '')}</h2><p>كل الدروس والاختبارات والمحاكي مفتوحة لك.</p></div>
       <div class="prog-ring"><svg width="64" height="64" viewBox="0 0 64 64"><circle cx="32" cy="32" r="27" fill="none" stroke="#26312a" stroke-width="6"/><circle cx="32" cy="32" r="27" fill="none" stroke="#d8bf86" stroke-width="6" stroke-linecap="round" stroke-dasharray="${(done/n*169.6).toFixed(1)} 170" transform="rotate(-90 32 32)"/></svg><div><b>${AR(done)}/${AR(n)}</b><div class="note">دروس مكتملة</div></div></div></div>`;
   }
-  return `<div class="card status pay"><div><div class="eyebrow">حسابك مجاني</div><h2>افتح كل الدروس والمحاكي</h2><p>فعّل حسابك بـ ${AR(S.settings.price || K.PRICE)} ريال لمرة واحدة فقط. تحوّل، ترفع الإيصال، ويتفعّل فوراً.</p></div><a class="btn pri" href="#pay">فعّل حسابك</a></div>`;
+  return `<div class="card status pay"><div><div class="eyebrow">حسابك مجاني</div><h2>افتح كل الدروس والمحاكي</h2><p>فعّل حسابك بـ ${priceHTML(S.settings)} لمرة واحدة فقط. تحوّل، ترفع الإيصال، ويتفعّل فوراً.</p></div><a class="btn pri" href="#pay">فعّل حسابك</a></div>`;
 }
 function vHome(){
   show('home');
@@ -240,7 +240,7 @@ function vHome(){
 
 // ---------------- lesson ----------------
 function paywall(title){
-  return `<div class="card paywall"><div class="eyebrow">يحتاج تفعيل الحساب</div><h2>${title || 'هذا المحتوى للحسابات المفعّلة'}</h2><p>تفعيل حسابك بـ ${AR(S.settings.price || K.PRICE)} ريال لمرة واحدة يفتح لك كل الدروس والاختبارات والمحاكي والمصطلحات.</p><div class="row" style="justify-content:center"><a class="btn pri" href="#pay">فعّل حسابك</a><a class="btn" href="#home">الرجوع للدروس</a></div></div>`;
+  return `<div class="card paywall"><div class="eyebrow">يحتاج تفعيل الحساب</div><h2>${title || 'هذا المحتوى للحسابات المفعّلة'}</h2><p>تفعيل حسابك بـ ${priceHTML(S.settings)} لمرة واحدة يفتح لك كل الدروس والاختبارات والمحاكي والمصطلحات.</p><div class="row" style="justify-content:center"><a class="btn pri" href="#pay">فعّل حسابك</a><a class="btn" href="#home">الرجوع للدروس</a></div></div>`;
 }
 async function getLesson(id){
   if(S.lessons[id]) return S.lessons[id];
@@ -354,7 +354,7 @@ function vSim(){
   $('#sim-wrap').hidden = false; $('#sim-lock').hidden = true;
   $('#pc-tip').hidden = !matchMedia('(pointer:coarse)').matches;
   const fr = $('#sim-free'); fr.hidden = ok;
-  if(!ok) fr.innerHTML = `<span>🎁</span><p><b>تمرين مجاني:</b> جرّب «الطيران الحر» و«الإقلاع والتحويم» و«المبنى الكبير: طيران حر». باقي المهام تنفتح مع تفعيل الحساب بـ ${AR(S.settings.price || K.PRICE)} ريال لمرة واحدة.</p><a class="btn sm pri" href="#pay">فعّل حسابك</a>`;
+  if(!ok) fr.innerHTML = `<span>🎁</span><p><b>تمرين مجاني:</b> جرّب «الطيران الحر» و«الإقلاع والتحويم» و«المبنى الكبير: طيران حر». باقي المهام تنفتح مع تفعيل الحساب بـ ${priceHTML(S.settings)} لمرة واحدة.</p><a class="btn sm pri" href="#pay">فعّل حسابك</a>`;
   Sim.setLocked(!ok);
   Sim.enter();
   loadBoard(boardMission || 'hover');
@@ -379,11 +379,11 @@ async function vGlossary(){
 function copyBtn(v){ return `<button class="btn sm" data-copy="${esc(v)}">نسخ</button>`; }
 function vPay(){
   show('pay');
-  const el = $('#v-pay'), st = S.settings, price = st.price || K.PRICE;
+  const el = $('#v-pay'), st = S.settings, price = priceInfo(st).now;
   if(S.profile.blocked){ el.innerHTML = statusCard(); return; }
   if(access()){ el.innerHTML = `<div class="card status"><div><div class="eyebrow">حسابك مفعّل</div><h2>كل شي مفتوح لك</h2><p>حسابك مفعّل، وكل الدروس والاختبارات والمحاكي متاحة لك.</p></div><a class="btn pri" href="#home">إلى الدروس</a></div>`; return; }
   const rows = [['البنك', st.bank_name], ['اسم صاحب الحساب', st.account_name], ['الآيبان IBAN', st.iban], ['STC Pay', st.stcpay]].filter(r => r[1]);
-  el.innerHTML = `<div class="sec-h"><div><div class="eyebrow">تفعيل الحساب</div><h2>فعّل حسابك بـ ${AR(price)} ريال</h2><p>دفعة واحدة فقط. حوّل المبلغ، ارفع الإيصال، ويتفعّل حسابك مباشرة.</p></div></div>
+  el.innerHTML = `<div class="sec-h"><div><div class="eyebrow">تفعيل الحساب</div><h2>فعّل حسابك بـ ${priceHTML(st)}</h2><p>دفعة واحدة فقط. حوّل المبلغ، ارفع الإيصال، ويتفعّل حسابك مباشرة.</p></div></div>
   <div class="pay">
     <div class="card bank"><h3 style="font-size:18px;margin-bottom:6px">١ · حوّل ${AR(price)} ريال</h3>
       ${rows.length ? rows.map(([k,v]) => `<div class="kv"><span>${k}</span><b>${esc(v)}</b>${copyBtn(v)}</div>`).join('') : `<p style="color:var(--muted)">بيانات التحويل تُضاف قريباً. تواصل معنا على واتساب <b class="mono" dir="ltr">${K.WHATSAPP_DISPLAY}</b> وسنرسلها لك فوراً.</p>`}

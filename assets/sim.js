@@ -293,7 +293,7 @@ window.Sim=(()=>{
   let g={thr:0,yaw:0,pitch:0,roll:0},gp=null;
   try{const ps=navigator.getGamepads?navigator.getGamepads():[];for(const p of ps){if(p&&p.connected){gp=p;break}}}catch(e){}
   if(gp){if(padIdx==null){padIdx=gp.index;padName=gp.id;padSt()}
-   const dz=v=>Math.abs(v)<.08?0:(v-Math.sign(v)*.08)/.92;const ax=gp.axes;
+   const D=TU.dz/100,dz=v=>Math.abs(v)<D?0:(v-Math.sign(v)*D)/(1-D);const ax=gp.axes;
    const lx=dz(ax[0]||0),ly=-dz(ax[1]||0),rx=dz(ax[2]||0),ry=-dz(ax[3]||0);
    g=m2?{thr:ly,yaw:lx,pitch:ry,roll:rx}:{pitch:ly,yaw:lx,thr:ry,roll:rx};
    const b=i=>gp.buttons[i]&&gp.buttons[i].pressed;if(b(4))tl+=1;if(b(5))tl-=1;[0,2,3,9].forEach(i=>{const p=b(i);if(p&&!pbtn[i]){if(i===0||i===9)toggleArm();if(i===2)cycleCam();if(i===3)start(mission)}pbtn[i]=p})}
@@ -301,23 +301,35 @@ window.Sim=(()=>{
   if(tl)gTilt=Math.max(-1.45,Math.min(.35,gTilt+tl*dt*.9));
   const c=v=>Math.max(-1,Math.min(1,v));
   for(const a in IN)if(a!=='src')IN[a]=c(kv[a]+g[a]+t[a]);
+  if(TU.invP)IN.pitch=-IN.pitch;if(TU.invR)IN.roll=-IN.roll;if(TU.invY)IN.yaw=-IN.yaw;if(TU.invT)IN.thr=-IN.thr;
  }
 
  /* ---- physics ----
    Levels 0–2: angle (self-levelling) mode with expo sticks. Level 3: Acro / rate mode like Liftoff & Betaflight:
    sticks command rotation rate, the quad keeps its attitude when you let go, throttle is direct with a mid-stick hover curve. */
- const G=9.81,TWR=4.2,HOV=1/TWR;
+ const G=9.81;
+ /* ---- tuning (sensitivity panel). Saved per browser. ---- */
+ const TUNE0={rpC:170,rpMax:640,rpExpo:.5,yC:160,yMax:420,yExpo:.35,tilt:100,resp:100,aExpo:.35,aYaw:230,climb:100,thrMid:50,power:4.2,dz:8,invP:0,invR:0,invY:0,invT:0,fpvTilt:25,fov:104};
+ const PRESETS={easy:{rpC:110,rpMax:380,rpExpo:.35,yC:110,yMax:280,yExpo:.3,tilt:75,resp:85,aExpo:.45,aYaw:160,climb:80,power:3.6},
+  mid:{},
+  fast:{rpC:200,rpMax:720,rpExpo:.55,yC:180,yMax:480,yExpo:.4,tilt:120,resp:120,aExpo:.25,aYaw:300,climb:125,power:5.2}};
+ const TU=Object.assign({},TUNE0);
+ try{const v=JSON.parse(localStorage.getItem('ku_sim_tune')||'null');if(v)for(const k in TUNE0)if(typeof v[k]==='number')TU[k]=v[k]}catch(e){}
+ let TWR=TU.power,HOV=1/TWR;
+ const tuneApply=()=>{TWR=TU.power;HOV=1/TWR;RATES.rp=[TU.rpC,TU.rpMax,TU.rpExpo];RATES.y=[TU.yC,TU.yMax,TU.yExpo];if(FPV_TILT)FPV_TILT.setFromEuler(new THREE.Euler(TU.fpvTilt*Math.PI/180,0,0,'YXZ'))};
+ const tuneSave=()=>{try{localStorage.setItem('ku_sim_tune',JSON.stringify(TU))}catch(e){}};
  const q=ok?new THREE.Quaternion():null,dq=ok?new THREE.Quaternion():null,eul=ok?new THREE.Euler(0,0,0,'YXZ'):null,up=ok?new THREE.Vector3():null,acc=ok?new THREE.Vector3():null,tmp=ok?new THREE.Vector3():null,fwd=ok?new THREE.Vector3():null;
  // Betaflight "Actual" rates: centre sensitivity, max rate (deg/s), expo
  function bfRate(x,c,mx,ex){const e=Math.abs(x)*(Math.pow(x,5)*ex+x*(1-ex));return (x*c+Math.max(0,mx-c)*e)*Math.PI/180}
- const RATES={rp:[170,640,.5],y:[160,420,.35]};
+ const RATES={rp:[TU.rpC,TU.rpMax,TU.rpExpo],y:[TU.yC,TU.yMax,TU.yExpo]};
  // throttle curve: stick centre = hover, so self-centring gamepad/touch sticks work; bottom = motors idle, top = full power
- const thrCurve=x=>x<0?HOV*(1+x):HOV+(1-HOV)*x;
+ // throttle curve: the stick position thrMid (default centre) = hover; bottom = idle, top = full power
+ const thrCurve=x=>{const u=(x+1)/2,m=Math.max(.2,Math.min(.8,TU.thrMid/100));return u<m?HOV*u/m:HOV+(1-HOV)*(u-m)/(1-m)};
  const expo=(v,e)=>v*(1-e)+v*v*v*e;
  function physics(dt){
   if(S.state!=='fly'){return}
   S.t+=dt;
-  const lvl=opt.level,acro=lvl===3,maxTilt=[.38,.6,.78][lvl]||.78;
+  const lvl=opt.level,acro=lvl===3,maxTilt=Math.min(1.25,([.38,.6,.78][lvl]||.78)*TU.tilt/100);
   // wind
   if(mission.id==='wind'){const t=S.t;wind.set(2.4+Math.sin(t*.7)*1.6+Math.sin(t*2.3)*.8,Math.sin(t*1.1)*.3,Math.cos(t*.5)*1.4+Math.sin(t*1.9)*.6)}
   else if(mission.id==='rth'){wind.set(-1.2,0,1.5)}else wind.set(0,0,0);
@@ -331,9 +343,9 @@ window.Sim=(()=>{
    eul.setFromQuaternion(S.q,'YXZ');S.pitch=-eul.x;S.roll=-eul.z;S.yaw=eul.y;
   }else{
    // angle mode: stick sets the tilt angle (with expo), the controller drives toward it with a rate limit
-   const tp=expo(IN.pitch,.35)*maxTilt,tr=expo(IN.roll,.35)*maxTilt,kp=[9,11,14][lvl],lim=6;
+   const tp=expo(IN.pitch,TU.aExpo)*maxTilt,tr=expo(IN.roll,TU.aExpo)*maxTilt,kp=[9,11,14][lvl]*TU.resp/100,lim=6*TU.resp/100;
    S.pitch+=Math.max(-lim,Math.min(lim,(tp-S.pitch)*kp))*dt;S.roll+=Math.max(-lim,Math.min(lim,(tr-S.roll)*kp))*dt;
-   if(S.armed)S.yaw-=bfRate(IN.yaw,100,230,.3)*dt;
+   if(S.armed)S.yaw-=bfRate(IN.yaw,TU.aYaw*.45,TU.aYaw,.3)*dt;
    eul.set(-S.pitch,S.yaw,-S.roll,'YXZ');S.q.setFromEuler(eul);
   }
   up.set(0,1,0).applyQuaternion(S.q);
@@ -342,8 +354,8 @@ window.Sim=(()=>{
   let tc=0;const maxA=acro?TWR*G:24;
   if(S.armed&&S.bat>0){
    if(acro)tc=thrCurve(IN.thr)*TWR*G;
-   else if(lvl<2){const vz=IN.thr*(lvl===0?2.5:3.5);tc=(G+(vz-S.vel.y)*4)/Math.max(.55,up.y);tc=Math.max(0,Math.min(24,tc));if(S.onGround&&IN.thr<=0.05)tc=Math.min(tc,9.0)}
-   else tc=IN.thr>=0?G+IN.thr*13:G*(1+IN.thr);
+   else if(lvl<2){const vz=IN.thr*(lvl===0?2.5:3.5)*TU.climb/100;tc=(G+(vz-S.vel.y)*4)/Math.max(.55,up.y);tc=Math.max(0,Math.min(24,tc));if(S.onGround&&IN.thr<=0.05)tc=Math.min(tc,9.0)}
+   else tc=IN.thr>=0?G+IN.thr*13*TU.climb/100:G*(1+IN.thr);
   }
   S.thrO+=(tc-S.thrO)*(1-Math.exp(-dt/.03));const th=S.thrO;
   acc.copy(up).multiplyScalar(th);acc.y-=G;
@@ -374,7 +386,7 @@ window.Sim=(()=>{
  }
 
  /* ---- render ---- */
- const camOff=ok?new THREE.Vector3():null,look=ok?new THREE.Vector3():null,Y_AX=ok?new THREE.Vector3(0,1,0):null,tq=ok?new THREE.Quaternion():null,FPV_TILT=ok?new THREE.Quaternion().setFromEuler(new THREE.Euler(.44,0,0,'YXZ')):null;
+ const camOff=ok?new THREE.Vector3():null,look=ok?new THREE.Vector3():null,Y_AX=ok?new THREE.Vector3(0,1,0):null,tq=ok?new THREE.Quaternion():null,FPV_TILT=ok?new THREE.Quaternion().setFromEuler(new THREE.Euler(TU.fpvTilt*Math.PI/180,0,0,'YXZ')):null;
  function render(dt){
   drone.position.copy(S.pos);drone.quaternion.copy(S.q);
   const spin=S.armed?(20+S.thrO*1.1):0;props.forEach((p,i)=>p.rotation.y+=spin*dt*(i%3===0?1:-1));
@@ -397,7 +409,7 @@ window.Sim=(()=>{
    camOff.set(0,.035,-.19).applyQuaternion(q);camera.position.copy(S.pos).add(camOff);if(camera.position.y<.05)camera.position.y=.05;
    camera.quaternion.copy(q).multiply(FPV_TILT);
    if(S.armed){const v=.0012+Math.min(.004,S.thrO*.00009),tt=performance.now()/1000;eul.set(Math.sin(tt*47)*v,Math.sin(tt*41)*v,0,'YXZ');tq.setFromEuler(eul);camera.quaternion.multiply(tq)}
-   camera.fov=104}
+   camera.fov=TU.fov}
   camera.updateProjectionMatrix();
   renderer.render(scene,camera);
  }
@@ -414,7 +426,7 @@ window.Sim=(()=>{
   hud.hzg.setAttribute('transform',`rotate(${S.roll*57.3}) translate(0 ${S.pitch*60})`);
  }
  function loop(){if(!running)return;const dt=Math.min(.05,clock.getDelta());readInput(dt);
-  const steps=2;for(let i=0;i<steps;i++)physics(dt/steps);
+  const steps=2;if(!tuning)for(let i=0;i<steps;i++)physics(dt/steps);if(tuning)tuneLive();
   render(dt);updHud(dt);auUpdate(dt);
   if(S.state!=='fly'&&padIdx!=null){/* allow R via pad */}
   raf=requestAnimationFrame(loop)}
@@ -466,6 +478,63 @@ window.Sim=(()=>{
   T(AU.wash.g.gain,live?Math.min(.22,.03+.05*h):0,.06);T(AU.wash.f.frequency,650+380*Math.sqrt(h),.06);
   T(AU.wind.g.gain,S.state==='fly'&&!S.onGround?Math.min(.32,sp*.016):0,.12);T(AU.wind.f.frequency,250+sp*45,.12);
   if(live&&S.bat<20){AU.lowT-=dt;if(AU.lowT<=0){sfx('low');AU.lowT=4}}else AU.lowT=0}
+
+ /* ---- sensitivity panel ---- */
+ let tuning=false,tuneEl=null;
+ const TSPEC=[
+  ['acro','وضع Acro (الاحترافي)','يأثر على «احترافي Acro» بس: العصا تتحكم بسرعة الدوران.'],
+  ['rpC','سرعة الدوران قرب المنتصف',60,300,5,'°/s','كم تدور الطائرة لما تحرك العصا شوي. أقل = أنعم وأسهل للتعديلات الدقيقة.'],
+  ['rpMax','أقصى سرعة دوران (ميلان أمامي وجانبي)',200,1000,10,'°/s','سرعة الدوران لما تدفع العصا للآخر، وهي اللي تحدد سرعة القلبات.'],
+  ['rpExpo','Expo الميلان',0,.9,.05,'','يخلي المنتصف أهدأ والأطراف أسرع. أعلى = دقة أكثر قرب المنتصف.'],
+  ['yC','سرعة اللف قرب المنتصف (Yaw)',50,300,5,'°/s','نفس الفكرة لكن للدوران حول نفسها.'],
+  ['yMax','أقصى سرعة لف (Yaw)',150,800,10,'°/s','أقصى سرعة دوران حول نفسها لما تدفع العصا للآخر.'],
+  ['yExpo','Expo اللف',0,.9,.05,'','يهدّي اللف قرب المنتصف.'],
+  ['ang','أوضاع المساعدة (مبتدئ، متوسط، متقدم)','الطائرة ترجع مستوية لما تترك العصا.'],
+  ['tilt','أقصى ميلان',50,150,5,'%','كم تميل الطائرة لما تدفع العصا للآخر. أكثر = أسرع في التقدّم.'],
+  ['resp','سرعة الاستجابة',50,150,5,'%','كم بسرعة توصل للميلان المطلوب. أقل = حركة أنعم وأهدأ.'],
+  ['aExpo','نعومة العصا (Expo)',0,.8,.05,'','يقلل الحساسية قرب المنتصف عشان التعديلات الصغيرة.'],
+  ['aYaw','سرعة اللف',100,400,10,'°/s','سرعة دوران الطائرة حول نفسها.'],
+  ['thr','الدفع والماتورات',''],
+  ['thrMid','نقطة التحويم على عصا الدفع',20,80,1,'%','في Acro: مكان العصا اللي تحوم فيه الطائرة. ٥٠٪ = المنتصف، ومناسب ليد البلايستيشن.'],
+  ['climb','سرعة الصعود والنزول',50,150,5,'%','في أوضاع المساعدة: كم بسرعة تصعد وتنزل.'],
+  ['power','قوة الماتورات',2.5,7,.1,'×','نسبة الدفع لوزن الطائرة. أعلى = تسارع أقوى. طائرات السباق ٦ وأكثر.'],
+  ['stk','العصي ويد التحكم',''],
+  ['dz','المنطقة الميتة (Deadzone)',0,25,1,'%','تتجاهل الحركات الصغيرة جداً. زِدها إذا الطائرة تتحرك وأنت ما لمست العصا.'],
+  ['cam','كاميرا FPV',''],
+  ['fpvTilt','زاوية كاميرا FPV',0,50,1,'°','ميلان الكاميرا لفوق. زاوية أكبر تناسب السرعات العالية.'],
+  ['fov','مجال الرؤية FOV',70,130,1,'°','كم تشوف من الجوانب. أعلى = رؤية أوسع.']];
+ const fmtV=(k,v)=>{const sp=TSPEC.find(x=>x[0]===k);return (sp[4]<1?(+v).toFixed(2):Math.round(v*10)/10)+(sp[5]?' '+sp[5]:'')};
+ function openTune(){
+  tuning=true;if(tuneEl)tuneEl.remove();
+  const bay=$('#simbay');tuneEl=document.createElement('div');tuneEl.className='tune';
+  const rows=TSPEC.map(sp=>{if(sp.length===3)return `<h4 class="tn-sec">${sp[1]}${sp[2]?`<small>${sp[2]}</small>`:''}</h4>${sp[0]==='acro'?'<canvas class="tn-curve" width="560" height="170"></canvas><div class="tn-leg"><span><i style="background:#d8bf86"></i>ميلان</span><span><i style="background:#7cd39b"></i>لف</span><span><i style="background:#ff8f45"></i>عصاك الآن</span></div>':''}${sp[0]==='stk'?`<div class="tn-inv">${[['invP','اعكس التقدّم/التراجع'],['invR','اعكس الميلان الجانبي'],['invY','اعكس اللف'],['invT','اعكس الدفع']].map(([k,l])=>`<label><input type="checkbox" data-k="${k}" ${TU[k]?'checked':''}> ${l}</label>`).join('')}</div><div class="tn-test"><div><b>العصا اليسرى</b><div class="tn-box2"><i id="tn-l"></i></div></div><div><b>العصا اليمنى</b><div class="tn-box2"><i id="tn-r"></i></div></div><p class="tn-help">حرّك العصي وشوف النقطة. إذا تتحرك وأنت تارك العصا، زِد المنطقة الميتة.</p></div>`:''}`;
+   const [k,l,mn,mx,st]=sp;return `<div class="tn-row"><div class="tn-h"><span>${l}</span><b data-v="${k}">${fmtV(k,TU[k])}</b></div><input type="range" data-k="${k}" min="${mn}" max="${mx}" step="${st}" value="${TU[k]}"><p class="tn-help">${sp[6]}</p></div>`}).join('');
+  tuneEl.innerHTML=`<div class="tn-box"><div class="tn-top"><h3>🎛 حساسية التحكم</h3><button class="tn-x" aria-label="إغلاق">✕</button></div>
+   <details class="tn-how" open><summary>كيف تستخدمها؟</summary><ol><li>ابدأ بإعداد جاهز تحت، وطِر دقيقتين.</li><li>إذا الطائرة <b>حادة وتفلت منك</b>: نزّل «سرعة الدوران» أو «أقصى ميلان»، أو زِد الـExpo.</li><li>إذا <b>ثقيلة وبطيئة</b>: زِدها شوي شوي، بخطوات صغيرة.</li><li>غيّر إعداد واحد بس كل مرة وجرّب، عشان تعرف وش اللي فرق.</li><li>إعداداتك تنحفظ في جهازك تلقائياً، و«الافتراضي» يرجعك للبداية.</li></ol></details>
+   <div class="tn-pre"><span>إعداد جاهز:</span><button data-p="easy">هادئ للمبتدئ</button><button data-p="mid">متوسط (الافتراضي)</button><button data-p="fast">سريع مثل Liftoff</button></div>
+   ${rows}
+   <div class="tn-foot"><button class="btn sm" data-reset>↺ الافتراضي</button><button class="btn sm pri" data-done>تم</button></div></div>`;
+  bay.appendChild(tuneEl);
+  const box=tuneEl.querySelector('.tn-box');
+  const sync=()=>{tuneEl.querySelectorAll('input[type=range]').forEach(i=>{i.value=TU[i.dataset.k];tuneEl.querySelector(`[data-v="${i.dataset.k}"]`).textContent=fmtV(i.dataset.k,TU[i.dataset.k])});tuneEl.querySelectorAll('input[type=checkbox]').forEach(c=>c.checked=!!TU[c.dataset.k]);tuneApply();tuneSave();drawCurve()};
+  box.addEventListener('input',e=>{const i=e.target;if(!i.dataset||!i.dataset.k)return;TU[i.dataset.k]=i.type==='checkbox'?(i.checked?1:0):+i.value;if(i.type==='range')tuneEl.querySelector(`[data-v="${i.dataset.k}"]`).textContent=fmtV(i.dataset.k,TU[i.dataset.k]);tuneApply();tuneSave();drawCurve()});
+  box.addEventListener('keydown',e=>e.stopPropagation());
+  tuneEl.querySelector('.tn-pre').onclick=e=>{const b=e.target.closest('button');if(!b)return;Object.assign(TU,TUNE0,PRESETS[b.dataset.p]);sync();toast('تم تطبيق «'+b.textContent+'»')};
+  tuneEl.querySelector('[data-reset]').onclick=()=>{Object.assign(TU,TUNE0);sync();toast('رجعت للإعدادات الافتراضية')};
+  const close=()=>{tuning=false;tuneEl.remove();tuneEl=null;clock.getDelta()};
+  tuneEl.querySelector('.tn-x').onclick=close;tuneEl.querySelector('[data-done]').onclick=close;
+  tuneEl.onclick=e=>{if(e.target===tuneEl)close()};
+  drawCurve();
+ }
+ function drawCurve(){const cv=tuneEl&&tuneEl.querySelector('.tn-curve');if(!cv)return;const x=cv.getContext('2d'),W=cv.width,H=cv.height,P=30,top=1000;
+  x.clearRect(0,0,W,H);x.font='11px IBM Plex Mono, monospace';x.fillStyle='#8a8574';x.strokeStyle='#ffffff14';
+  for(let r=0;r<=top;r+=250){const y=H-18-(r/top)*(H-28);x.beginPath();x.moveTo(P,y);x.lineTo(W-6,y);x.stroke();x.fillText(r,2,y+4)}
+  const plot=(c,m,ex,col)=>{x.strokeStyle=col;x.lineWidth=2.5;x.beginPath();for(let i=0;i<=60;i++){const u=i/60,v=bfRate(u,c,m,ex)*180/Math.PI,px=P+u*(W-P-8),py=H-18-Math.min(1,v/top)*(H-28);i?x.lineTo(px,py):x.moveTo(px,py)}x.stroke()};
+  plot(TU.rpC,TU.rpMax,TU.rpExpo,'#d8bf86');plot(TU.yC,TU.yMax,TU.yExpo,'#7cd39b');
+  x.fillStyle='#8a8574';x.fillText('العصا ←',W-60,H-4);
+  const u=Math.min(1,Math.max(Math.abs(IN.roll),Math.abs(IN.pitch)));if(u>.01){const v=bfRate(u,TU.rpC,TU.rpMax,TU.rpExpo)*180/Math.PI;x.fillStyle='#ff8f45';x.beginPath();x.arc(P+u*(W-P-8),H-18-Math.min(1,v/top)*(H-28),6,0,7);x.fill();x.fillText(Math.round(v)+'°/s',Math.min(W-60,P+u*(W-P-8)+8),14)}}
+ let tlT=0;function tuneLive(){if(!tuneEl)return;tlT++;const m2=opt.mode===2,L=m2?[IN.yaw,IN.thr]:[IN.yaw,IN.pitch],Rr=m2?[IN.roll,IN.pitch]:[IN.roll,IN.thr];
+  const l=document.getElementById('tn-l'),r=document.getElementById('tn-r');if(l)l.style.transform=`translate(${L[0]*40}px,${-L[1]*40}px)`;if(r)r.style.transform=`translate(${Rr[0]*40}px,${-Rr[1]*40}px)`;if(tlT%3===0)drawCurve()}
  /* ---- full screen ---- */
  function buzzS(){try{navigator.vibrate&&navigator.vibrate(40)}catch(e){}
   try{const ps=navigator.getGamepads?navigator.getGamepads():[];for(const p of ps){if(p&&p.vibrationActuator)p.vibrationActuator.playEffect('dual-rumble',{duration:80,strongMagnitude:.2,weakMagnitude:.5}).catch(()=>{})}}catch(e){}}
@@ -485,9 +554,11 @@ window.Sim=(()=>{
   try{screen.orientation&&screen.orientation.unlock&&screen.orientation.unlock()}catch(e){}full=0;setFullUI()}
  function rotateHint(){if(!COARSE||innerWidth>innerHeight)return;const h=document.createElement('div');h.className='rot-hint';h.textContent='📱 أدر الجوال بالعرض لمساحة أكبر';$('#simbay').appendChild(h);setTimeout(()=>h.remove(),3200)}
  function setupFull(){const bay=$('#simbay');
-  const bar=document.createElement('div');bar.className='fsbar';bar.innerHTML='<button id="fs-btn" type="button"></button><button id="fs-menu" type="button" hidden>☰ المهام</button>';bay.appendChild(bar);
+  const bar=document.createElement('div');bar.className='fsbar';bar.innerHTML='<button id="fs-btn" type="button"></button><button id="fs-menu" type="button" hidden>☰ المهام</button><button id="fs-tune" type="button">🎛 الحساسية</button>';bay.appendChild(bar);
   $('#fs-btn').onclick=e=>{e.currentTarget.blur();full?exitFull():goFull()};
   $('#fs-menu').onclick=e=>{e.currentTarget.blur();menu()};
+  $('#fs-tune').onclick=e=>{e.currentTarget.blur();openTune()};
+  const st=document.getElementById('s-tune');if(st)st.onclick=e=>{e.currentTarget.blur();if(!full)goFull();openTune()};
   const ch=()=>{if(full===1&&!fsEl()){full=0;try{screen.orientation.unlock()}catch(e){}setFullUI()}};
   document.addEventListener('fullscreenchange',ch);document.addEventListener('webkitfullscreenchange',ch);
   addEventListener('keydown',e=>{if(e.code==='Escape'&&full===2)exitFull()});

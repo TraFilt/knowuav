@@ -95,6 +95,49 @@ function bubbles(pairs){
   return pairs.map(([en,ar],i)=>`<g opacity="0" transform="translate(0 ${i*72})"><rect x="${i%2?250:110}" y="64" width="280" height="56" rx="18" fill="${C.pan}" stroke="${i%2?C.ok:C.sand}"/>${T((i%2?250:110)+140,90,en,{fs:19,mono:1,w:600,c:i%2?C.ok:C.sand})}${T((i%2?250:110)+140,111,ar,{fs:14,c:C.mut,dir:'rtl'})}${fadeIn(.3+i*1.2)}</g>`).join('');
 }
 
+// ---------- controller grip scenes ----------
+const SKIN='#c8935f', SKIN2='#8c5f3a';
+function ctrlTop(cx, cy, s=1, grip='', move=true){
+  const knob = (x) => `<g transform="translate(${x} -6)"><circle r="44" fill="#0f1511" stroke="${C.line}" stroke-width="2"/><g><circle r="15" fill="${C.sand}"/><circle r="7" fill="#b39a5e"/>${move?`<animateTransform attributeName="transform" type="translate" values="0 0;0 -14;0 0;10 0;0 0;0 12;0 0" dur="4s" repeatCount="indefinite"/>`:''}</g></g>`;
+  const thumb = (sx) => `<g transform="translate(${sx*104} 34) rotate(${sx*-28})"><ellipse rx="17" ry="44" fill="${SKIN}" stroke="${SKIN2}" stroke-width="2"/><ellipse cx="0" cy="-28" rx="9" ry="10" fill="#e3b48a" opacity=".7"/></g>`;
+  const pinch = (sx) => `<g transform="translate(${sx*96} 36) rotate(${sx*-12})"><ellipse rx="15" ry="40" fill="${SKIN}" stroke="${SKIN2}" stroke-width="2"/></g><g transform="translate(${sx*124} -56) rotate(${sx*38})"><ellipse rx="13" ry="46" fill="${SKIN}" stroke="${SKIN2}" stroke-width="2"/><ellipse cx="0" cy="34" rx="7" ry="9" fill="#e3b48a" opacity=".7"/></g>`;
+  const palm = (sx) => `<ellipse cx="${sx*168}" cy="${grip==='pinch'?40:90}" rx="62" ry="58" fill="${SKIN}" stroke="${SKIN2}" stroke-width="2" opacity=".95"/>`;
+  let g = `<g transform="translate(${cx} ${cy}) scale(${s})">`;
+  if(grip) g += palm(-1) + palm(1);
+  g += `<path d="M-150 -78 H150 A40 40 0 0 1 190 -38 V40 A60 60 0 0 1 80 70 H-80 A60 60 0 0 1 -190 40 V-38 A40 40 0 0 1 -150 -78Z" fill="${C.pan}" stroke="${C.dim}" stroke-width="2"/>`;
+  g += `<rect x="-26" y="-60" width="52" height="34" rx="6" fill="#0b100d" stroke="${C.line}"/><circle cx="-12" cy="30" r="6" fill="${C.line}"/><circle cx="12" cy="30" r="6" fill="${C.line}"/>`;
+  g += knob(-90) + knob(90);
+  if(grip==='thumbs') g += thumb(-1) + thumb(1);
+  if(grip==='pinch') g += pinch(-1) + pinch(1);
+  return g + `</g>`;
+}
+function gripTip(){
+  const k = (x, ok) => `<g transform="translate(${x} 175)"><circle r="70" fill="#0f1511" stroke="${C.line}" stroke-width="2"/><circle r="26" fill="${C.sand}"/>`+
+    (ok ? `<g transform="translate(18 70) rotate(-20)"><ellipse rx="28" ry="78" fill="${SKIN}" stroke="${SKIN2}" stroke-width="2"/><ellipse cy="-58" rx="15" ry="16" fill="#e3b48a" opacity=".8"/></g>`
+        : `<g transform="translate(6 30) rotate(-20)"><ellipse rx="28" ry="78" fill="${SKIN}" stroke="${SKIN2}" stroke-width="2"/><path d="M-22 -6 Q0 4 22 -6" stroke="${SKIN2}" stroke-width="2" fill="none"/></g>`)+
+    `<circle cx="70" cy="-70" r="20" fill="${ok?C.ok:C.bad}" fill-opacity=".2" stroke="${ok?C.ok:C.bad}" stroke-width="2"/>`+
+    (ok ? `<path d="M60 -70l7 8 13-15" fill="none" stroke="${C.ok}" stroke-width="4"/>` : `<path d="M62 -78l16 16M78 -78l-16 16" stroke="${C.bad}" stroke-width="4"/>`)+`</g>`;
+  return G(k(440, true) + T(440, 320, 'طرف الإبهام', {fs:18, c:C.ok}), .2) + G(k(200, false) + T(200, 320, 'المفصل كامل', {fs:18, c:C.bad}), 1.2);
+}
+function gripPosture(){
+  const p = `<g fill="none" stroke="${C.txt}" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="250" cy="78" r="26" fill="${C.pan}"/><path d="M250 106 V250"/><path d="M250 250 L232 330 M250 250 L270 330"/>
+    <path d="M252 126 L260 206 L352 186"/></g>`;
+  const ctrl = `<g transform="translate(372 182) rotate(-18)"><rect x="-38" y="-16" width="76" height="32" rx="10" fill="${C.pan}" stroke="${C.sand}" stroke-width="2"/><line x1="-20" y1="-16" x2="-26" y2="-46" stroke="${C.sand}" stroke-width="3"/><line x1="20" y1="-16" x2="26" y2="-46" stroke="${C.sand}" stroke-width="3"/></g>`;
+  const strap = `<path d="M262 112 Q330 120 360 168" fill="none" stroke="${C.sig}" stroke-width="3" stroke-dasharray="7 6"/>`;
+  return `<rect width="640" height="360" fill="url(#grid)"/>` + p + ctrl +
+    G(strap + T(345, 112, 'حبل الرقبة', {fs:15, c:C.sig, a:'start'}), .6) +
+    G(`<circle cx="259" cy="206" r="13" fill="${C.ok}" fill-opacity=".25" stroke="${C.ok}" stroke-width="2"/>` + T(190, 232, 'الكوع مسنود', {fs:15, c:C.ok}), 1.4) +
+    G(`<line x1="440" y1="182" x2="560" y2="182" stroke="${C.dim}" stroke-dasharray="5 5"/>` + T(500, 170, 'مستوى الصدر', {fs:15, c:C.dim}), 2.2);
+}
+function gripAntenna(){
+  const ant = (x, y, ang=0) => `<g transform="translate(${x} ${y}) rotate(${ang})"><rect x="-30" y="0" width="60" height="26" rx="8" fill="${C.pan}" stroke="${C.sand}" stroke-width="2"/><line x1="0" y1="0" x2="0" y2="-70" stroke="${C.sand}" stroke-width="5" stroke-linecap="round"/></g>`;
+  const lobes = (x, y) => `<g opacity=".5"><ellipse cx="${x+70}" cy="${y-35}" rx="70" ry="34" fill="${C.ok}" fill-opacity=".18" stroke="${C.ok}"/><ellipse cx="${x-70}" cy="${y-35}" rx="70" ry="34" fill="${C.ok}" fill-opacity=".18" stroke="${C.ok}"/><animate attributeName="opacity" values=".25;.6;.25" dur="1.6s" repeatCount="indefinite"/></g>`;
+  return `<rect width="640" height="360" fill="url(#grid)"/>` + lobes(170, 260) + ant(170, 260) +
+    G(quadSide(330, 225, .55) + `<path d="M310 250l7 8 13-15" fill="none" stroke="${C.ok}" stroke-width="4"/>` + T(170, 330, 'الجنب مقابل الطائرة', {fs:16, c:C.ok}), .5) +
+    G(ant(470, 260) + quadSide(470, 92, .55) + `<path d="M500 120l16 16M516 120l-16 16" stroke="${C.bad}" stroke-width="4"/>` + T(470, 330, 'الراس باتجاهها = إشارة ضعيفة', {fs:15, c:C.bad}), 1.6);
+}
+
 const V = {
   title: s => `<rect width="640" height="360" fill="url(#grid)"/>`+`<g><animateTransform attributeName="transform" type="translate" from="-120 -40" to="0 0" dur="1.6s" fill="freeze"/>${quadTop(320,150,1.1)}</g>`+G(T(320,290,s.cap,{fs:30,w:700,c:C.sand}),1),
   points: s => T(320,56,s.cap,{fs:24,w:700,c:C.sand})+list(s.pts||[],560,128,62,{step:.9}),
@@ -139,6 +182,11 @@ const V = {
   'check-sys': () => checks(['جهاز التحكم والوضع','Failsafe مضبوط','الأقمار كافية','«جاهز للإقلاع»'],'٣ · الأنظمة ← ٤ · الإعلان'),
   'sticks-2': () => sticks(['THROTTLE ↕','YAW ↔'],['PITCH ↕','ROLL ↔'],'l')+T(320,40,'Mode 2',{fs:22,mono:1,w:600,c:C.sand}),
   'sticks-2r': () => sticks(['THROTTLE ↕','YAW ↔'],['PITCH ↕','ROLL ↔'],'r')+T(320,40,'Mode 2',{fs:22,mono:1,w:600,c:C.sand}),
+  'grip-thumbs': () => `<rect width="640" height="360" fill="url(#grid)"/>`+ctrlTop(320,200,1.15,'thumbs')+T(320,46,'مسكة الإبهام · Thumbs',{fs:22,w:600,c:C.sand}),
+  'grip-pinch': () => `<rect width="640" height="360" fill="url(#grid)"/>`+ctrlTop(320,210,1.1,'pinch')+T(320,46,'مسكة القرصة · Pinch',{fs:22,w:600,c:C.sig}),
+  'grip-tip': () => gripTip(),
+  'grip-posture': () => gripPosture(),
+  'grip-antenna': () => gripAntenna(),
   'sticks-1': () => sticks(['PITCH ↕','YAW ↔'],['THROTTLE ↕','ROLL ↔'],'r')+T(320,40,'Mode 1',{fs:22,mono:1,w:600,c:C.sand}),
   'mode-angle': () => ground(300)+`<g><animateTransform attributeName="transform" type="rotate" values="0 320 170;-25 320 170;-25 320 170;0 320 170" keyTimes="0;.25;.5;.8" dur="4s" repeatCount="indefinite"/>${quadSide(320,170,1.5)}</g>`+T(320,60,'Angle',{fs:22,mono:1,w:600,c:C.sand})+T(320,330,'تترك العصا ← ترجع مستوية',{fs:16,c:C.mut,dir:'rtl'}),
   'mode-gps': () => ground(300)+windLines(6,1)+quadSide(320,170,1.5,-12)+T(320,60,'GPS',{fs:22,mono:1,w:600,c:C.sand})+`<circle cx="320" cy="170" r="70" fill="none" stroke="${C.ok}" stroke-dasharray="6 6"/>`+T(320,330,'ريح، والطائرة ثابتة',{fs:16,c:C.mut,dir:'rtl'}),

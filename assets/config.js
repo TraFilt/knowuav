@@ -6,5 +6,6 @@ window.KU = {
   WHATSAPP_DISPLAY: '0534344581',
   EMAIL: 'TraFilt.store@gmail.com',
   PRICE: 25,
+  SELLER: 'طلال خيرات', FREELANCE_NO: 'FL-838044761', CITY: 'جازان',
   GOOGLE_ENABLED: false  // اجعلها true بعد تفعيل قوقل في Supabase
 };

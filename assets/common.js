@@ -21,7 +21,7 @@
       <div><img src="/assets/logo.png" alt="Know UAV"><div>منصة تعليمية مستقلة لتعلّم أساسيات تشغيل الطائرات بدون طيار، بدروس عربية ومحاكي طيران.</div></div>
       <div><h4>الموقع</h4><a href="/about">من نحن</a><a href="/privacy">سياسة الخصوصية</a><a href="/terms">الشروط والأحكام</a><a href="/refund">سياسة الاسترجاع</a></div>
       <div><h4>الدعم</h4><a href="https://wa.me/${K.WHATSAPP}" target="_blank" rel="noopener">واتساب: <span class="ltr">${K.WHATSAPP_DISPLAY}</span></a><a href="mailto:${K.EMAIL}"><span class="ltr">${K.EMAIL}</span></a></div>
-    </div><div class="wrap" style="margin-top:20px">© ${new Date().getFullYear()} Know UAV</div>`;
+    </div><div class="wrap seller" style="margin-top:20px">© ${new Date().getFullYear()} Know UAV · ${K.SELLER || ''} · وثيقة العمل الحر رقم <span class="ltr">${K.FREELANCE_NO || ''}</span> · ${K.CITY || ''}، المملكة العربية السعودية</div>`;
     document.body.appendChild(f);
     const wa = document.createElement('a'); wa.className = 'wa'; wa.href = 'https://wa.me/' + K.WHATSAPP; wa.target = '_blank'; wa.rel = 'noopener';
     wa.setAttribute('aria-label', 'تواصل عبر واتساب'); wa.innerHTML = waIcon; document.body.appendChild(wa);

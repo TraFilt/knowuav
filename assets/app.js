@@ -86,7 +86,7 @@ window.onSimBest = async (mission, t) => {
 };
 
 // ---------------- leaderboard + avatars ----------------
-const MNAME = { hover:'الإقلاع والتحويم', box:'المربع', gates:'البوابات', land:'الهبوط الدقيق', wind:'تحويم مع رياح', rth:'العودة ببطارية منخفضة', slalom:'التعرّج بين الأعمدة', orbit:'الدوران حول البرج', low:'الممر المنخفض', pads:'الهبوط على ثلاث منصات', night:'البوابات الليلية' };
+const MNAME = { hover:'الإقلاع والتحويم', box:'المربع', gates:'البوابات', land:'الهبوط الدقيق', wind:'تحويم مع رياح', rth:'العودة ببطارية منخفضة', slalom:'التعرّج بين الأعمدة', orbit:'الدوران حول البرج', low:'الممر المنخفض', pads:'الهبوط على ثلاث منصات', night:'البوابات الليلية', coins:'المبنى الكبير: اجمع الكرات' };
 function avatar(url, name, size = 36){
   const n = String(name || '؟').trim().charAt(0) || '؟';
   return url ? `<img class="ava" src="${esc(url)}" alt="" width="${size}" height="${size}" style="width:${size}px;height:${size}px" loading="lazy">`

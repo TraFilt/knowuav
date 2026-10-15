@@ -46,7 +46,7 @@ create or replace function public.sim_scores_guard() returns trigger
 language plpgsql as $$
 declare minsec real := case new.mission when 'hover' then 5 when 'wind' then 15 when 'box' then 8
                                        when 'gates' then 8 when 'land' then 5 when 'rth' then 5
-                                       when 'slalom' then 8 when 'orbit' then 8 when 'low' then 5 when 'pads' then 10 when 'night' then 8 else 1 end;
+                                       when 'slalom' then 8 when 'orbit' then 8 when 'low' then 5 when 'pads' then 10 when 'night' then 8 when 'coins' then 30 else 1 end;
 begin
   if new.best_time is null or new.best_time < minsec or new.best_time > 3600 then
     raise exception 'invalid time';

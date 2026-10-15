@@ -13,7 +13,7 @@
 
 ## ٣) النشر (Vercel) · دقيقتان
 1. vercel.com ← **Add New ← Project** ← اختر مستودع `knowuav` ← **Deploy** (بدون أي إعدادات).
-2. سيعطيك رابطاً مثل `https://www.knowuav.com` (وقبله `https://knowuav.vercel.app`).
+2. سيعطيك رابطاً مثل `https://www.knowuav.com` (وقبله `https://www.knowuav.com`).
 3. ارجع لـ Supabase ← **Authentication ← URL Configuration**:
    - **Site URL**: رابط موقعك
    - **Redirect URLs**: أضف `https://رابطك/app`

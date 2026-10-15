@@ -1,13 +1,18 @@
-// Know UAV — transactional emails through Gmail (SMTP port 465).
-// Called by database triggers (see supabase/emails.sql). Secrets needed in
-// Supabase → Edge Functions → Secrets: GMAIL_USER, GMAIL_APP_PASSWORD, HOOK_SECRET.
+// Know UAV — transactional emails.
+// Sends through Brevo (BREVO_API_KEY) from noreply@knowuav.com when that secret is set,
+// otherwise falls back to Gmail SMTP (GMAIL_USER + GMAIL_APP_PASSWORD, port 465).
+// Called by database triggers (see supabase/emails.sql). Always needs HOOK_SECRET.
 import nodemailer from "npm:nodemailer@6.9.14";
 
-const SITE = "https://knowuav.vercel.app";
+const SITE = "https://www.knowuav.com";
 const WA = "966534344581", WA_SHOW = "0534344581";
 const USER = Deno.env.get("GMAIL_USER") ?? "";
 const PASS = (Deno.env.get("GMAIL_APP_PASSWORD") ?? "").replace(/\s+/g, "");
 const SECRET = Deno.env.get("HOOK_SECRET") ?? "";
+const BREVO = Deno.env.get("BREVO_API_KEY") ?? "";
+const FROM = Deno.env.get("MAIL_FROM") ?? "noreply@knowuav.com";
+const REPLY = Deno.env.get("MAIL_REPLY_TO") ?? "info@knowuav.com";
+const ADMIN = Deno.env.get("ADMIN_EMAIL") ?? (USER || "TraFilt.store@gmail.com");
 
 const mailer = nodemailer.createTransport({
   host: "smtp.gmail.com", port: 465, secure: true, auth: { user: USER, pass: PASS },
@@ -29,8 +34,8 @@ ${body}
 ${cta ? `<p style="margin:24px 0 6px"><a href="${cta.href}" style="display:inline-block;background:#d8bf86;color:#1a1408;text-decoration:none;font-weight:bold;padding:12px 26px;border-radius:999px">${cta.label}</a></p>` : ""}
 </td></tr>
 <tr><td style="padding:18px 26px;border-top:1px solid #2a352d;text-align:right;font-size:13px;color:#9aa595;line-height:1.8">
-للدعم: واتساب <a href="https://wa.me/${WA}" style="color:#d8bf86">${WA_SHOW}</a> · <a href="mailto:${USER}" style="color:#d8bf86">${USER}</a><br>
-Know UAV منصة تعليمية مستقلة · <a href="${SITE}" style="color:#9aa595">knowuav.vercel.app</a></td></tr>
+للدعم: واتساب <a href="https://wa.me/${WA}" style="color:#d8bf86">${WA_SHOW}</a> · <a href="mailto:${REPLY}" style="color:#d8bf86">${REPLY}</a><br>
+Know UAV منصة تعليمية مستقلة · <a href="${SITE}" style="color:#9aa595">knowuav.com</a></td></tr>
 </table></td></tr></table></body></html>`;
 }
 
@@ -61,8 +66,8 @@ function build(d: Record<string, any>): { to: string; subject: string; html: str
           p("<span style=\"font-size:13px;color:#9aa595\">نراجع الإيصالات بعد التفعيل، والإيصال غير الصحيح يؤدي لإيقاف الحساب.</span>"),
           { href: `${SITE}/app#home`, label: "ادخل على الدروس" }),
       }];
-      if (USER) out.push({
-        to: USER,
+      if (ADMIN) out.push({
+        to: ADMIN,
         subject: `إيصال جديد للمراجعة #${d.id} · ${d.email}`,
         html: shell("إيصال جديد 🧾",
           p(`<b style="color:#f2ead2">${esc(d.email)}</b>${d.name ? " · " + esc(d.name) : ""}`) +
@@ -88,14 +93,23 @@ function build(d: Record<string, any>): { to: string; subject: string; html: str
 Deno.serve(async (req) => {
   if (req.method !== "POST") return new Response("ok");
   if (!SECRET || req.headers.get("x-hook-secret") !== SECRET) return new Response("forbidden", { status: 403 });
-  if (!USER || !PASS) return new Response("missing GMAIL_USER / GMAIL_APP_PASSWORD", { status: 500 });
+  if (!BREVO && (!USER || !PASS)) return new Response("missing BREVO_API_KEY (or GMAIL_USER / GMAIL_APP_PASSWORD)", { status: 500 });
   let d: Record<string, any>;
   try { d = await req.json(); } catch { return new Response("bad json", { status: 400 }); }
   const mails = build(d).filter((m) => m.to);
   const res: string[] = [];
   for (const m of mails) {
     try {
-      await mailer.sendMail({ from: `"Know UAV" <${USER}>`, replyTo: USER, to: m.to, subject: m.subject, html: m.html });
+      if (BREVO) {
+        const r = await fetch("https://api.brevo.com/v3/smtp/email", {
+          method: "POST",
+          headers: { "api-key": BREVO, "content-type": "application/json", accept: "application/json" },
+          body: JSON.stringify({ sender: { name: "Know UAV", email: FROM }, replyTo: { email: REPLY }, to: [{ email: m.to }], subject: m.subject, htmlContent: m.html }),
+        });
+        if (!r.ok) throw new Error("brevo " + r.status + " " + (await r.text()).slice(0, 200));
+      } else {
+        await mailer.sendMail({ from: `"Know UAV" <${USER}>`, replyTo: USER, to: m.to, subject: m.subject, html: m.html });
+      }
       res.push("sent:" + m.to);
     } catch (e) {
       console.error("send failed", m.to, e);

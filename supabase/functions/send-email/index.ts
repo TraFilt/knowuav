@@ -1,5 +1,5 @@
 // Know UAV — transactional emails.
-// Sends from noreply@knowuav.com through Brevo: the API (BREVO_API_KEY) or Brevo SMTP on port 465
+// Sends from noreply@knowuav.com through Resend (RESEND_API_KEY), or Brevo: the API (BREVO_API_KEY) or Brevo SMTP on port 465
 // (BREVO_SMTP_KEY, login BREVO_SMTP_LOGIN). Otherwise falls back to Gmail SMTP (GMAIL_USER + GMAIL_APP_PASSWORD).
 // Called by database triggers (see supabase/emails.sql). Always needs HOOK_SECRET.
 import nodemailer from "npm:nodemailer@6.9.14";
@@ -10,6 +10,7 @@ const USER = Deno.env.get("GMAIL_USER") ?? "";
 const PASS = (Deno.env.get("GMAIL_APP_PASSWORD") ?? "").replace(/\s+/g, "");
 const SECRET = Deno.env.get("HOOK_SECRET") ?? "";
 const BREVO = Deno.env.get("BREVO_API_KEY") ?? "";
+const RESEND = Deno.env.get("RESEND_API_KEY") ?? "";
 const BSMTP = Deno.env.get("BREVO_SMTP_KEY") ?? "";
 const BLOGIN = Deno.env.get("BREVO_SMTP_LOGIN") ?? "be44a3001@smtp-brevo.com";
 const FROM = Deno.env.get("MAIL_FROM") ?? "noreply@knowuav.com";
@@ -95,14 +96,21 @@ function build(d: Record<string, any>): { to: string; subject: string; html: str
 Deno.serve(async (req) => {
   if (req.method !== "POST") return new Response("ok");
   if (!SECRET || req.headers.get("x-hook-secret") !== SECRET) return new Response("forbidden", { status: 403 });
-  if (!BREVO && !BSMTP && (!USER || !PASS)) return new Response("missing BREVO_API_KEY / BREVO_SMTP_KEY (or GMAIL_USER / GMAIL_APP_PASSWORD)", { status: 500 });
+  if (!RESEND && !BREVO && !BSMTP && (!USER || !PASS)) return new Response("missing RESEND_API_KEY / BREVO_API_KEY / BREVO_SMTP_KEY (or GMAIL_USER / GMAIL_APP_PASSWORD)", { status: 500 });
   let d: Record<string, any>;
   try { d = await req.json(); } catch { return new Response("bad json", { status: 400 }); }
   const mails = build(d).filter((m) => m.to);
   const res: string[] = [];
   for (const m of mails) {
     try {
-      if (BREVO) {
+      if (RESEND) {
+        const r = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: { Authorization: "Bearer " + RESEND, "content-type": "application/json" },
+          body: JSON.stringify({ from: `Know UAV <${FROM}>`, reply_to: REPLY, to: [m.to], subject: m.subject, html: m.html }),
+        });
+        if (!r.ok) throw new Error("resend " + r.status + " " + (await r.text()).slice(0, 200));
+      } else if (BREVO) {
         const r = await fetch("https://api.brevo.com/v3/smtp/email", {
           method: "POST",
           headers: { "api-key": BREVO, "content-type": "application/json", accept: "application/json" },

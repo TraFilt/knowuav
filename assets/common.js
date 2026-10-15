@@ -2,7 +2,7 @@
 (function(){
   const K = window.KU;
   window.sb = window.supabase.createClient(K.SUPABASE_URL, K.SUPABASE_KEY, {
-    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: 'pkce' }
+    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: 'implicit' }
   });
   window.$ = s => document.querySelector(s);
   window.$$ = s => [...document.querySelectorAll(s)];

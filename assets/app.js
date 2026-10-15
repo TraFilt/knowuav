@@ -9,6 +9,11 @@ let player = null, quizTimer = null;
 // ---------------- boot ----------------
 // NOTE: never await Supabase calls inside onAuthStateChange — it holds the auth lock and deadlocks. Defer with setTimeout.
 let loading = null;
+// password-recovery / email links: implicit flow puts tokens (or an error) in the URL hash
+const URLX = location.hash + '&' + location.search;
+let recovering = /type=recovery/.test(URLX);
+const LINK_ERR = /error_code=|[#&?]error=/.test(URLX) ? (/otp_expired|expired/i.test(URLX) ? 'expired' : 'bad') : '';
+function showReset(){ recovering = true; $('#boot').hidden = true; $('#nav').hidden = true; show('reset'); setTimeout(() => $('#rs-pass') && $('#rs-pass').focus(), 50); }
 function start(session){
   if(loading) return loading;
   S.session = session; S.user = session.user;
@@ -21,8 +26,9 @@ function start(session){
 }
 sb.auth.onAuthStateChange((ev, session) => {
   setTimeout(() => {
-    if(ev === 'PASSWORD_RECOVERY'){ S.session = session; $('#boot').hidden = true; show('reset'); return; }
-    if((ev === 'SIGNED_IN' || ev === 'INITIAL_SESSION') && session && !location.hash.includes('type=recovery')) start(session);
+    if(ev === 'PASSWORD_RECOVERY'){ S.session = session; showReset(); return; }
+    if(recovering) return;
+    if((ev === 'SIGNED_IN' || ev === 'INITIAL_SESSION') && session) start(session);
     if(ev === 'SIGNED_OUT' && S.user){ location.href = '/'; }
   }, 0);
 });
@@ -30,10 +36,21 @@ sb.auth.onAuthStateChange((ev, session) => {
   let session = null;
   try { const { data } = await Promise.race([sb.auth.getSession(), new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 8000))]); session = data.session; }
   catch(e){ console.error(e); }
-  if(!session){ $('#boot').hidden = true; if(!S.user) showAuth(location.hash === '#login' ? 'in' : 'up'); return; }
+  if(session && recovering){ S.session = session; showReset(); return; }
+  if(!session){
+    $('#boot').hidden = true;
+    if(LINK_ERR){
+      recovering = false; history.replaceState(null, '', '/app#login'); showAuth('in');
+      $('#au-err').style.color = '';
+      $('#au-err').textContent = LINK_ERR === 'expired' ? 'الرابط انتهت صلاحيته أو استُخدم قبل. اكتب بريدك واضغط «نسيت كلمة المرور» ويوصلك رابط جديد.' : 'الرابط غير صالح. اكتب بريدك واضغط «نسيت كلمة المرور» ويوصلك رابط جديد.';
+      return;
+    }
+    if(recovering){ recovering = false; history.replaceState(null, '', '/app#login'); showAuth('in'); $('#au-err').textContent = 'الرابط انتهت صلاحيته. اطلب رابطاً جديداً من «نسيت كلمة المرور».'; return; }
+    if(!S.user) showAuth(location.hash === '#login' ? 'in' : 'up'); return;
+  }
   start(session);
 })();
-addEventListener('hashchange', () => { if(S.user) route(); else showAuth(location.hash === '#login' ? 'in' : 'up'); });
+addEventListener('hashchange', () => { if(recovering) return; if(S.user) route(); else showAuth(location.hash === '#login' ? 'in' : 'up'); });
 
 async function loadUser(){
   $('#nav').hidden = false;
@@ -178,9 +195,12 @@ $('#au-forgot').onclick = async () => {
 };
 $('#rs-form').onsubmit = async e => {
   e.preventDefault();
-  const { error } = await sb.auth.updateUser({ password: $('#rs-pass').value });
-  if(error) return $('#rs-err').textContent = AUTH_ERR(error.message);
-  toast('تم تغيير كلمة المرور'); location.hash = '#home'; if(!S.profile){ S.user = (await sb.auth.getUser()).data.user; await loadUser(); } route();
+  const pw = $('#rs-pass').value;
+  if(pw.length < 6) return $('#rs-err').textContent = 'كلمة المرور لازم تكون ٦ أحرف أو أكثر.';
+  const { error } = await sb.auth.updateUser({ password: pw });
+  if(error) return $('#rs-err').textContent = /session|JWT|expired/i.test(error.message) ? 'انتهت صلاحية الرابط. اطلب رابطاً جديداً من «نسيت كلمة المرور».' : AUTH_ERR(error.message);
+  recovering = false; history.replaceState(null, '', '/app#home'); toast('تم تغيير كلمة المرور ✅');
+  const { data } = await sb.auth.getSession(); if(data.session) start(data.session); else showAuth('in');
 };
 
 // ---------------- home ----------------

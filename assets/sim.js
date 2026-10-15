@@ -12,7 +12,7 @@ window.MISSIONS=[
  {id:'low',title:'الممر المنخفض',brief:'مرّ من الحلقات الخمس بالترتيب، ولا ترتفع فوق ٣ أمتار.',par:40},
  {id:'pads',title:'الهبوط على ثلاث منصات',brief:'اهبط على المنصات الثلاث بالترتيب، وتوقّف تماماً على كل وحدة.',par:60},
  {id:'night',title:'البوابات الليلية',brief:'البوابات الست بالليل. اعتمد على الإضاءة وخفّف سرعتك.',par:70},
- {id:'hangar',title:'المبنى الكبير: طيران حر',brief:'مستودع ضخم فيه رفوف وحاويات ودور علوي وجسر رافعة ونفق. استكشف بحرية، وجرّب تهبط فوق الحاويات والدور العلوي.',par:0,map:'hangar'},
+ {id:'hangar',title:'المبنى الكبير: طيران حر',brief:'مستودع ضخم فيه رفوف وحاويات ودور علوي وجسر رافعة ونفق. استكشف بحرية، وجرّب تهبط فوق الحاويات والدور العلوي.',par:0,map:'hangar',free:true},
  {id:'coins',title:'المبنى الكبير: اجمع الكرات',brief:'١٥ كرة ذهبية داخل المبنى: بين الرفوف، تحت الدور العلوي، داخل الحاوية وفوق الجسور. اجمعها كلها بأي ترتيب.',par:150,map:'hangar'}
 ];
 window.Sim=(()=>{
@@ -442,7 +442,7 @@ window.Sim=(()=>{
   setFullUI()}
  function box(html){$('#overbox').innerHTML=html;$('#over').hidden=false}
  function intro(){if(introShown)return;introShown=true;
-  box(`<h3>جاهز تطير؟</h3><p>${COARSE?'استخدم العصاتين على الشاشة، واضغط «تسليح» ثم ارفع العصا اليسرى. وللتجربة الأفضل: الكمبيوتر أو يد تحكم بالبلوتوث.':'لوحة المفاتيح جاهزة، ولو عندك يد بلايستيشن أو إكس بوكس وصّلها واضغط أي زر.'}${locked?'<br><b style="color:var(--sand)">التمرين المجاني: الطيران الحر والإقلاع والتحويم.</b>':''}</p>
+  box(`<h3>جاهز تطير؟</h3><p>${COARSE?'استخدم العصاتين على الشاشة، واضغط «تسليح» ثم ارفع العصا اليسرى. وللتجربة الأفضل: الكمبيوتر أو يد تحكم بالبلوتوث.':'لوحة المفاتيح جاهزة، ولو عندك يد بلايستيشن أو إكس بوكس وصّلها واضغط أي زر.'}${locked?'<br><b style="color:var(--sand)">التمرين المجاني: الطيران الحر، والإقلاع والتحويم، والطيران الحر داخل المبنى الكبير.</b>':''}</p>
    <div class="row" style="justify-content:center"><button class="btn pri" id="o-go">ابدأ التمرين ⛶</button><button class="btn" id="o-nofs">بدون ملء الشاشة</button></div>`);
   $('#o-go').onclick=()=>{$('#over').hidden=true;goFull();start(mission)};$('#o-nofs').onclick=()=>{$('#over').hidden=true;start(mission)}}
  function menu(){const b=best();box(`<h3>المهام</h3><div class="mlist omenu">${MISSIONS.map(m=>`<button class="mbtn ${m===mission?'on':''} ${isLocked(m)?'lk':''}" data-m="${m.id}"><b>${isLocked(m)?'🔒 ':''}${m.title}</b><span>${m.par?'هدف '+m.par+' ث':''}</span>${b[m.id]?`<em>أفضل وقت ${b[m.id].toFixed(1)} ث</em>`:''}</button>`).join('')}</div><div class="row" style="justify-content:center;margin-top:12px"><button class="btn sm" id="o-cl">رجوع</button></div>`);

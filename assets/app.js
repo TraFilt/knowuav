@@ -354,7 +354,7 @@ function vSim(){
   $('#sim-wrap').hidden = false; $('#sim-lock').hidden = true;
   $('#pc-tip').hidden = !matchMedia('(pointer:coarse)').matches;
   const fr = $('#sim-free'); fr.hidden = ok;
-  if(!ok) fr.innerHTML = `<span>🎁</span><p><b>تمرين مجاني:</b> جرّب «الطيران الحر» و«الإقلاع والتحويم». باقي المهام تنفتح مع تفعيل الحساب بـ ${AR(S.settings.price || K.PRICE)} ريال لمرة واحدة.</p><a class="btn sm pri" href="#pay">فعّل حسابك</a>`;
+  if(!ok) fr.innerHTML = `<span>🎁</span><p><b>تمرين مجاني:</b> جرّب «الطيران الحر» و«الإقلاع والتحويم» و«المبنى الكبير: طيران حر». باقي المهام تنفتح مع تفعيل الحساب بـ ${AR(S.settings.price || K.PRICE)} ريال لمرة واحدة.</p><a class="btn sm pri" href="#pay">فعّل حسابك</a>`;
   Sim.setLocked(!ok);
   Sim.enter();
   loadBoard(boardMission || 'hover');

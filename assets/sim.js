@@ -556,24 +556,75 @@ window.Sim=(()=>{
   else if(id==='wind'){add(V3(0,4,-4),{r:.3,v:2,hold:16})}
   else if(id==='pads'){M.pts.forEach(q=>{add(V3(q.p.x,2.5,q.p.z),{r:.6,v:4});add(V3(q.p.x,.06,q.p.z),{land:1,r:.3,hold:1.6})})}
   else if(id==='hangar'){[[0,3,-5],[-20.5,3,-6],[-20.5,3.4,-44],[-20.5,4,-50],[-6,5,-50.5],[25,3,-47.5],[25,3,-36],[14,1.4,-36],[9,1.3,-36],[-5,1.3,-36],[-8,5,-28],[0,5,-12],[0,2.5,-3]].forEach(([x,y,z],i)=>add(V3(x,y,z),{r:i>=7&&i<=9?.45:1,v:i>=7&&i<=9?2.2:4}));add(V3(0,.06,0),{land:1,r:.3,hold:2})}
+  // fly it like a real pilot: fast on the open legs, a bit quicker on the precise bits too
+  W.forEach(w=>{if(!w.land)w.v*=w.v>=4?AP_FAST:AP_FINE});
   return W}
+ const AP_FAST=3.1,AP_FINE=2.6,AP_DEC=6.5;
+ /* human-like slips for the broadcast: about a third of the missions get one, some end in a crash.
+    picked from a shuffled bag so the same slip never shows up twice in a row. */
+ const SLIPS=['wobble','yawslip','dip','gust','overshoot','late'];
+ let slipBag=[],lastSlip=null,lastCrash=null,lastWasCrash=false;
+ function slipsFor(id){return id==='hangar'?['wobble','yawslip']:(id==='slalom'||id==='orbit')?['wobble','yawslip','dip','gust']:id==='low'?['wobble','yawslip','gust']:(id==='hover'||id==='wind')?['wobble','gust']:(id==='gates'||id==='night')?['wobble','yawslip','overshoot','late']:id==='box'?['wobble','yawslip','dip','gust','overshoot']:SLIPS}
+ function crashSlipsFor(id){return id==='slalom'?['pole']:id==='orbit'?['tower']:(id==='gates'||id==='night')?['gate']:id==='low'?['climb']:(id==='land'||id==='pads'||id==='rth')?['hardland']:[]}
+ function pickSlip(m){
+  if(window.KU_AP_ERR!==undefined)return window.KU_AP_ERR?mkSlip(window.KU_AP_ERR,m):null;
+  const cs=crashSlipsFor(m.id).filter(c=>c!==lastCrash);
+  const r=Math.random();
+  if(!lastWasCrash&&cs.length&&r<.16){const c=cs[Math.floor(Math.random()*cs.length)];lastCrash=c;lastWasCrash=true;return mkSlip(c,m)}
+  lastWasCrash=false;
+  if(r<.5){const ok=slipsFor(m.id);if(!ok.length)return null;
+   for(let tries=0;tries<12;tries++){if(!slipBag.length){slipBag=SLIPS.slice().sort(()=>Math.random()-.5);if(slipBag[0]===lastSlip)slipBag.push(slipBag.shift())}
+    const k=slipBag.shift();if(ok.includes(k)&&k!==lastSlip){lastSlip=k;return mkSlip(k,m)}slipBag.push(k)}}
+  return null}
+ function mkSlip(k,m){return {k,at:null,t:0,done:false,dir:Math.random()<.5?-1:1,ph:Math.random()*6}}
+ function slipSetup(E){
+  // crash slips bend the plan itself
+  const P=AP.plan,n=P.length;if(!n)return;
+  const mid=()=>1+Math.floor(Math.random()*Math.max(1,n-2));
+  if(E.k==='pole'&&M.poles){const j=Math.min(n-2,1+Math.floor(Math.random()*3));const po=M.poles[Math.min(M.poles.length-1,j)];P[j].p.x=po.x+E.dir*.15;P[j].p.z=po.z;P[j].v=Math.max(P[j].v,5)}
+  else if(E.k==='tower'){const j=3+Math.floor(Math.random()*6);if(P[j]){P[j].p.set(M.c.x+(P[j].p.x-M.c.x)*.05,4,M.c.z+(P[j].p.z-M.c.z)*.05)}}
+  else if(E.k==='gate'){const g=1+Math.floor(Math.random()*Math.max(1,M.pts.length-2)),ry=M.pts[g].o.rotation.y,lx=Math.cos(ry)*1.5*E.dir,lz=-Math.sin(ry)*1.5*E.dir;
+   for(let i=g*3;i<g*3+3&&i<n;i++){P[i].p.x+=lx;P[i].p.z+=lz}}
+  else if(E.k==='climb'){const j=1+Math.floor(Math.random()*3);if(P[j])P[j].p.y=4.2}
+  else E.at=n<2?0:mid()}
  function apStep(dt){
   const A=AP;if(!A||S.state!=='fly'){IN.thr=IN.yaw=IN.pitch=IN.roll=0;return}
   if(!S.armed){A.armT+=dt;IN.thr=IN.yaw=IN.pitch=IN.roll=0;if(A.armT>1.2){S.armed=true;sfx('arm')}return}
-  const wp=A.plan[A.i];if(!wp){IN.thr=-.4;IN.yaw=IN.pitch=IN.roll=0;if(!A.fin&&S.onGround){A.fin=1;S.state='done';apNext(true)}return}
+  const wp=A.plan[A.i];if(!wp){
+   // done with the route: stop first, then settle down
+   const fy=S.yaw,vf=S.vel.x*-Math.sin(fy)+S.vel.z*-Math.cos(fy),vr=S.vel.x*Math.cos(fy)+S.vel.z*-Math.sin(fy),hs=Math.hypot(S.vel.x,S.vel.z);
+   IN.yaw=0;IN.pitch=clp(-vf*.38);IN.roll=clp(-vr*.38);IN.thr=hs>1.5?clp(-S.vel.y*.3):-.4*100/TU.climb;
+   if(!A.fin&&S.onGround){A.fin=1;S.state='done';apNext(true)}return}
   const T=wp.p,p=S.pos,v=S.vel,dx=T.x-p.x,dz=T.z-p.z,dh=Math.hypot(dx,dz);
-  if(dh>1.2)A.yd=Math.atan2(-dx,-dz);const e=wrapA(A.yd-S.yaw);
+  if(dh>1.2)A.yd=Math.atan2(-dx,-dz);
+  const E=A.err;let eOff=0,keep=false,hard=false;
+  if(E&&!E.done){
+   if(E.k==='hardland'){hard=wp.land&&p.y<5}
+   else if(E.at!=null&&A.i>=E.at){E.t+=dt;const k=E.k;
+    if(k==='yawslip'){eOff=E.dir*1.2*Math.min(1,E.t*3);if(E.t>1.3)E.done=true}
+    else if(k==='overshoot'||k==='late'){keep=true;if(E.t>(k==='late'?1.4:.9))E.done=true}
+    else if(k==='gust'){if(!E.g){E.g=1;const fy=S.yaw;S.vel.x+=Math.cos(fy)*6*E.dir;S.vel.z+=-Math.sin(fy)*6*E.dir;S.vel.y+=.6}if(E.t>.2)E.done=true}
+    else if(k==='dip'){if(p.y<3.2&&E.t<.1){E.at++;E.t=0}else if(E.t>.6)E.done=true}
+    else if(k==='wobble'){if(E.t>2.6)E.done=true}}
+  }
+  const e=wrapA(A.yd+eOff-S.yaw);
   IN.yaw=clp(-e*1.4);
   const fy=S.yaw,fx=-Math.sin(fy),fz=-Math.cos(fy),rx=Math.cos(fy),rz=-Math.sin(fy);
-  let sp=Math.min(wp.v,dh*.9)*Math.max(.15,1-Math.abs(e)/1.6);const ux=dh>1e-3?dx/dh:0,uz=dh>1e-3?dz/dh:0;
-  const vxd=ux*sp,vzd=uz*sp,vf=v.x*fx+v.z*fz,vr=v.x*rx+v.z*rz,vfd=vxd*fx+vzd*fz,vrd=vxd*rx+vzd*rz;
+  // carry speed through the waypoint (brake only as much as the next turn needs), like a real pilot
+  const nx=A.plan[A.i+1];let vn=0;
+  if(nx&&!wp.hold&&!wp.land&&!nx.land){const ax=dx,az=dz,bx=nx.p.x-T.x,bz=nx.p.z-T.z,la=Math.hypot(ax,az)||1,lb=Math.hypot(bx,bz)||1;const c=(ax*bx+az*bz)/(la*lb);vn=Math.min(wp.v,nx.v)*Math.max(.25,(1+c)/2)}
+  let sp=Math.min(wp.v,Math.sqrt(vn*vn+2*AP_DEC*dh),wp.hold||wp.land?dh*.9+.05:1e9)*Math.max(.15,1-Math.abs(e)/1.6);const ux=dh>1e-3?dx/dh:0,uz=dh>1e-3?dz/dh:0;
+  let vxd=ux*sp,vzd=uz*sp;if(keep){const hv=Math.hypot(v.x,v.z)||1,ks=Math.max(hv,wp.v*.9);vxd=v.x/hv*ks;vzd=v.z/hv*ks}
+  const vf=v.x*fx+v.z*fz,vr=v.x*rx+v.z*rz,vfd=vxd*fx+vzd*fz,vrd=vxd*rx+vzd*rz;
   IN.pitch=clp((vfd-vf)*.38);IN.roll=clp((vrd-vr)*.38);
-  if(wp.land){IN.thr=dh>.6?clp((1.2-p.y)*.8-v.y*.3):(p.y>1?-.45:-.22);if(S.onGround)IN.thr=-1}
+  if(E&&!E.done&&E.k==='wobble'&&E.at!=null&&A.i>=E.at){const t=E.t*9+E.ph;IN.pitch=clp(IN.pitch+.45*Math.sin(t)+.2*Math.sin(t*2.3));IN.roll=clp(IN.roll+.5*Math.sin(t*.83+1)+.2*Math.sin(t*3.1))}
+  if(wp.land){const kc=100/TU.climb;IN.thr=dh>.6?clp((1.2-p.y)*.8-v.y*.3):(p.y>1?-.45*kc:-.22*kc);if(hard&&dh<2.5)IN.thr=-1;if(S.onGround)IN.thr=-1}
   else IN.thr=clp((T.y-p.y)*.9-v.y*.25);
+  if(E&&!E.done&&E.k==='dip'&&E.at!=null&&A.i>=E.at&&E.t>=.1)IN.thr=-.55;
   const d3=wp.land?dh:p.distanceTo(T),there=wp.land?(S.onGround&&dh<.6):d3<wp.r;
   if(there){A.hold+=dt;if(!wp.hold||A.hold>=wp.hold){A.i++;A.hold=0}}else if(!wp.land)A.hold=0;
   A.camT+=dt;if(!A.fixCam&&A.camT>A.camEvery){A.camT=0;const cs=MAP==='hangar'?['chase','fpv','chase','gimbal']:['chase','fpv','chase','gimbal','chase'];A.ci=(A.ci+1)%cs.length;setCam(cs[A.ci])}}
- function apStart(m){if(!AP)return;AP.plan=apPlan(m);AP.i=0;AP.fin=0;AP.hold=0;AP.armT=0;AP.yd=S.yaw;AP.camT=0;try{AP.on&&AP.on({type:'mission',mission:m})}catch(e){}}
+ function apStart(m){if(!AP)return;AP.plan=apPlan(m);AP.err=pickSlip(m);if(AP.err)slipSetup(AP.err);AP.i=0;AP.fin=0;AP.hold=0;AP.armT=0;AP.yd=S.yaw;AP.camT=0;try{AP.on&&AP.on({type:'mission',mission:m})}catch(e){}}
  function apNext(ok){if(!AP)return;try{AP.on&&AP.on({type:ok?'done':'crash',mission})}catch(e){}
   clearTimeout(AP.t);AP.t=setTimeout(()=>{if(!AP)return;AP.k=(AP.k+(ok?1:1))%AP.list.length;$('#over').hidden=true;start(MISSIONS.find(x=>x.id===AP.list[AP.k]))},ok?3200:2600)}
  /* ---- full screen ---- */
@@ -615,7 +666,7 @@ window.Sim=(()=>{
  function showLocked(m){box(`<h3>🔒 ${m.title}</h3><p>هذي المهمة للحسابات المفعّلة. فعّل حسابك بـ ${window.priceHTML?priceHTML():'٢٥ ريال'} لمرة واحدة، وتنفتح لك كل المهام والدروس.</p><div class="row" style="justify-content:center"><a class="btn pri" href="#pay" id="o-pay">فعّل حسابك</a><button class="btn" id="o-cl">رجوع</button></div>`);
   $('#o-pay').onclick=()=>exitFull();$('#o-cl').onclick=()=>{$('#over').hidden=true}}
  return{
-  autopilot(list,on){AP={list,k:0,on,camEvery:13,camT:0,ci:0,i:0,hold:0,armT:0,yd:0,plan:[]};opt.level=1;TU.dz=8;introShown=true;$('#over').hidden=true;start(MISSIONS.find(x=>x.id===list[0]));setCam('chase')},
+  autopilot(list,on){AP={list,k:0,on,camEvery:13,camT:0,ci:0,i:0,hold:0,armT:0,yd:0,plan:[]};opt.level=1;TU.dz=8;TU.tilt=150;TU.climb=160;TU.resp=135;TU.aYaw=320;introShown=true;$('#over').hidden=true;start(MISSIONS.find(x=>x.id===list[0]));setCam('chase')},
   apGoto(id){if(!AP)return;const k=AP.list.indexOf(id),m=MISSIONS.find(x=>x.id===id);if(!m)return;if(k>=0)AP.k=k;clearTimeout(AP.t);$('#over').hidden=true;start(m)},
   apCam(c){if(!AP)return;if(!c||c==='auto'){AP.fixCam=null;AP.camT=0}else{AP.fixCam=c;setCam(c)}},
   setVol(v){AU.vol=Math.max(0,Math.min(1,+v||0));AU.on=AU.vol>0;auSave()},

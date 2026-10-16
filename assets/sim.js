@@ -207,6 +207,7 @@ window.Sim=(()=>{
     const h=new THREE.Mesh(new THREE.SphereGeometry(.85,20,14),new THREE.MeshBasicMaterial({color:'#ffd27a',transparent:true,opacity:.16,depthWrite:false}));o.add(h);
     o.position.set(x,y,z);o.userData.y=y;markers.add(o);return {p:new THREE.Vector3(x,y,z),o,got:false}});M.got=0}
   S.q.setFromEuler(eul.set(0,S.yaw,0,'YXZ'));S.w.set(0,0,0);S.thrO=0;S.hdg=S.yaw;S.py=S.pos.y;
+  if(AP)apStart(m);
   markActive();renderMissions();try{window.onSimMission&&window.onSimMission(m.id)}catch(e){}
   {const ot=hud.obj.querySelector('.ot');ot.textContent=m.title;const ob=document.createElement('span');ob.className='ob';ob.textContent=': '+m.brief;ot.appendChild(ob);const hb=document.getElementById('h-brief');if(hb)hb.innerHTML='<b>'+m.title+'</b> · '+m.brief;}
   if(m.id!=='rth')flash('اضغط مسافة أو زر ✕ / A للتسليح');
@@ -214,10 +215,10 @@ window.Sim=(()=>{
  const ORBS=[[0,2,-8],[-20.5,3,-20],[-20.5,6,-40],[-28.5,1.5,-30],[-24,8.5,-28],[25,3,-36],[25,3,-50],[25,7.5,-46],[2,1.3,-36],[6,6,-20],[2,8.5,-24],[16,14.8,-16],[-12,4,-36],[12,2,-52],[28,12,4]];
  function markActive(){if(!M.pts)return;M.pts.forEach((p,i)=>{const on=i===M.i;p.o.traverse(o=>{if(o.material&&o.material.color){o.material.color.set(i<M.i?'#7cd39b':on?'#ff8f45':'#8a7f66');if(o.material.opacity!==undefined&&o.material.transparent)o.material.opacity=on?.35:.15}})})}
  function flash(t){hud.objst.textContent=t}
- function win(){S.state='done';sfx('win');const t=S.t;const b=best();if(!b[mission.id]||t<b[mission.id]){b[mission.id]=t;window.onSimBest&&window.onSimBest(mission.id,t)}
+ function win(){S.state='done';if(AP)apNext(true);sfx('win');const t=S.t;const b=best();if(!b[mission.id]||t<b[mission.id]){b[mission.id]=t;window.onSimBest&&window.onSimBest(mission.id,t)}
   const st=mission.par?(t<=mission.par?3:t<=mission.par*1.6?2:1):3;
   over(`<div class="stars">${'★'.repeat(st)}${'☆'.repeat(3-st)}</div><h3>أُنجزت المهمة</h3><p>الزمن ${t.toFixed(1)} ثانية · البطارية المتبقية ${Math.round(S.bat)}٪</p>`);renderMissions()}
- function crash(why){if(S.state!=='fly')return;S.state='crash';S.armed=false;buzz();sfx('crash');over(`<h3 style="color:var(--signal)">تحطّمت الطائرة</h3><p>${why}</p>`)}
+ function crash(why){if(S.state!=='fly')return;S.state='crash';if(AP)apNext(false);S.armed=false;buzz();sfx('crash');over(`<h3 style="color:var(--signal)">تحطّمت الطائرة</h3><p>${why}</p>`)}
  function over(html){const nx=MISSIONS[MISSIONS.indexOf(mission)+1];$('#overbox').innerHTML=html+`<div class="row" style="justify-content:center"><button class="btn pri" id="o-re">أعد المحاولة</button>${S.state==='done'&&nx?`<button class="btn" id="o-nx">المهمة التالية</button>`:''}</div><p class="note" style="margin-top:10px">${COARSE?'':'أو اضغط R / زر △ Y'}</p>`;$('#over').hidden=false;
   $('#o-re').onclick=()=>start(mission);const n=$('#o-nx');if(n)n.onclick=()=>start(nx)}
 
@@ -302,6 +303,7 @@ window.Sim=(()=>{
   const c=v=>Math.max(-1,Math.min(1,v));
   for(const a in IN)if(a!=='src')IN[a]=c(kv[a]+g[a]+t[a]);
   if(TU.invP)IN.pitch=-IN.pitch;if(TU.invR)IN.roll=-IN.roll;if(TU.invY)IN.yaw=-IN.yaw;if(TU.invT)IN.thr=-IN.thr;
+  if(AP)apStep(dt);
  }
 
  /* ---- physics ----
@@ -535,6 +537,45 @@ window.Sim=(()=>{
   const u=Math.min(1,Math.max(Math.abs(IN.roll),Math.abs(IN.pitch)));if(u>.01){const v=bfRate(u,TU.rpC,TU.rpMax,TU.rpExpo)*180/Math.PI;x.fillStyle='#ff8f45';x.beginPath();x.arc(P+u*(W-P-8),H-18-Math.min(1,v/top)*(H-28),6,0,7);x.fill();x.fillText(Math.round(v)+'°/s',Math.min(W-60,P+u*(W-P-8)+8),14)}}
  let tlT=0;function tuneLive(){if(!tuneEl)return;tlT++;const m2=opt.mode===2,L=m2?[IN.yaw,IN.thr]:[IN.yaw,IN.pitch],Rr=m2?[IN.roll,IN.pitch]:[IN.roll,IN.thr];
   const l=document.getElementById('tn-l'),r=document.getElementById('tn-r');if(l)l.style.transform=`translate(${L[0]*40}px,${-L[1]*40}px)`;if(r)r.style.transform=`translate(${Rr[0]*40}px,${-Rr[1]*40}px)`;if(tlT%3===0)drawCurve()}
+
+ /* ---- autopilot (used by the /live broadcast page): flies the missions by moving the sticks, like a pilot would ---- */
+ let AP=null;
+ const wrapA=a=>Math.atan2(Math.sin(a),Math.cos(a)),clp=v=>Math.max(-1,Math.min(1,v));
+ const V3=(x,y,z)=>new THREE.Vector3(x,y,z);
+ function apPlan(m){
+  const W=[],add=(p,o={})=>W.push(Object.assign({p,r:1,v:5},o));
+  const id=m.id;
+  if(id==='hover'){add(V3(0,3,0),{r:.35,v:1.5,hold:6})}
+  else if(id==='box'){M.pts.forEach(q=>add(q.p.clone(),{r:1.2,v:5}))}
+  else if(id==='slalom'||id==='low'){M.pts.forEach(q=>add(q.p.clone(),{r:id==='low'?.6:1,v:id==='low'?2.6:3.5}))}
+  else if(id==='gates'||id==='night'){let prev=V3(0,3,0);M.pts.forEach(q=>{const c=q.p,ry=q.o.rotation.y;const n=V3(Math.sin(ry),0,Math.cos(ry));if(n.dot(c.clone().sub(prev))<0)n.negate();
+    add(c.clone().addScaledVector(n,-3.2),{r:.8,v:id==='night'?3:3.6});add(c.clone(),{r:.7,v:2.6});add(c.clone().addScaledVector(n,1.6),{r:1,v:3});prev=c})}
+  else if(id==='orbit'){const C=M.c;for(let i=0;i<=18;i++){const a=Math.PI/2+i/16*Math.PI*2;add(V3(C.x+Math.cos(a)*6.5,4,C.z+Math.sin(a)*6.5),{r:1.6,v:3.2})}}
+  else if(id==='land'){add(V3(LAND_PAD.x,4,LAND_PAD.z),{r:.8,v:6});add(V3(LAND_PAD.x,.06,LAND_PAD.z),{land:1,r:.3})}
+  else if(id==='rth'){add(V3(0,6,0),{r:1.5,v:7});add(V3(0,.06,0),{land:1,r:.3})}
+  else if(id==='wind'){add(V3(0,4,-4),{r:.3,v:2,hold:16})}
+  else if(id==='pads'){M.pts.forEach(q=>{add(V3(q.p.x,2.5,q.p.z),{r:.6,v:4});add(V3(q.p.x,.06,q.p.z),{land:1,r:.3,hold:1.6})})}
+  else if(id==='hangar'){[[0,3,-5],[-20.5,3,-6],[-20.5,3.4,-44],[-20.5,4,-50],[-6,5,-50.5],[25,3,-47.5],[25,3,-36],[14,1.4,-36],[9,1.3,-36],[-5,1.3,-36],[-8,5,-28],[0,5,-12],[0,2.5,-3]].forEach(([x,y,z],i)=>add(V3(x,y,z),{r:i>=7&&i<=9?.45:1,v:i>=7&&i<=9?2.2:4}));add(V3(0,.06,0),{land:1,r:.3,hold:2})}
+  return W}
+ function apStep(dt){
+  const A=AP;if(!A||S.state!=='fly'){IN.thr=IN.yaw=IN.pitch=IN.roll=0;return}
+  if(!S.armed){A.armT+=dt;IN.thr=IN.yaw=IN.pitch=IN.roll=0;if(A.armT>1.2){S.armed=true;sfx('arm')}return}
+  const wp=A.plan[A.i];if(!wp){IN.thr=-.4;IN.yaw=IN.pitch=IN.roll=0;if(!A.fin&&S.onGround){A.fin=1;S.state='done';apNext(true)}return}
+  const T=wp.p,p=S.pos,v=S.vel,dx=T.x-p.x,dz=T.z-p.z,dh=Math.hypot(dx,dz);
+  if(dh>1.2)A.yd=Math.atan2(-dx,-dz);const e=wrapA(A.yd-S.yaw);
+  IN.yaw=clp(-e*1.4);
+  const fy=S.yaw,fx=-Math.sin(fy),fz=-Math.cos(fy),rx=Math.cos(fy),rz=-Math.sin(fy);
+  let sp=Math.min(wp.v,dh*.9)*Math.max(.15,1-Math.abs(e)/1.6);const ux=dh>1e-3?dx/dh:0,uz=dh>1e-3?dz/dh:0;
+  const vxd=ux*sp,vzd=uz*sp,vf=v.x*fx+v.z*fz,vr=v.x*rx+v.z*rz,vfd=vxd*fx+vzd*fz,vrd=vxd*rx+vzd*rz;
+  IN.pitch=clp((vfd-vf)*.38);IN.roll=clp((vrd-vr)*.38);
+  if(wp.land){IN.thr=dh>.6?clp((1.2-p.y)*.8-v.y*.3):(p.y>1?-.45:-.22);if(S.onGround)IN.thr=-1}
+  else IN.thr=clp((T.y-p.y)*.9-v.y*.25);
+  const d3=wp.land?dh:p.distanceTo(T),there=wp.land?(S.onGround&&dh<.6):d3<wp.r;
+  if(there){A.hold+=dt;if(!wp.hold||A.hold>=wp.hold){A.i++;A.hold=0}}else if(!wp.land)A.hold=0;
+  A.camT+=dt;if(A.camT>A.camEvery){A.camT=0;const cs=MAP==='hangar'?['chase','fpv','chase','gimbal']:['chase','fpv','chase','gimbal','chase'];A.ci=(A.ci+1)%cs.length;setCam(cs[A.ci])}}
+ function apStart(m){if(!AP)return;AP.plan=apPlan(m);AP.i=0;AP.fin=0;AP.hold=0;AP.armT=0;AP.yd=S.yaw;AP.camT=0;try{AP.on&&AP.on({type:'mission',mission:m})}catch(e){}}
+ function apNext(ok){if(!AP)return;try{AP.on&&AP.on({type:ok?'done':'crash',mission})}catch(e){}
+  clearTimeout(AP.t);AP.t=setTimeout(()=>{if(!AP)return;AP.k=(AP.k+(ok?1:1))%AP.list.length;$('#over').hidden=true;start(MISSIONS.find(x=>x.id===AP.list[AP.k]))},ok?3200:2600)}
  /* ---- full screen ---- */
  function buzzS(){try{navigator.vibrate&&navigator.vibrate(40)}catch(e){}
   try{const ps=navigator.getGamepads?navigator.getGamepads():[];for(const p of ps){if(p&&p.vibrationActuator)p.vibrationActuator.playEffect('dual-rumble',{duration:80,strongMagnitude:.2,weakMagnitude:.5}).catch(()=>{})}}catch(e){}}
@@ -564,7 +605,7 @@ window.Sim=(()=>{
   addEventListener('keydown',e=>{if(e.code==='Escape'&&full===2)exitFull()});
   setFullUI()}
  function box(html){$('#overbox').innerHTML=html;$('#over').hidden=false}
- function intro(){if(introShown)return;introShown=true;
+ function intro(){if(introShown||AP)return;introShown=true;
   box(`<h3>جاهز تطير؟</h3><p>${COARSE?'استخدم العصاتين على الشاشة، واضغط «تسليح» ثم ارفع العصا اليسرى. وللتجربة الأفضل: الكمبيوتر أو يد تحكم بالبلوتوث.':'لوحة المفاتيح جاهزة، ولو عندك يد بلايستيشن أو إكس بوكس وصّلها واضغط أي زر.'}${locked?'<br><b style="color:var(--sand)">التمرين المجاني: الطيران الحر، والإقلاع والتحويم، والطيران الحر داخل المبنى الكبير.</b>':''}</p>
    <div class="row" style="justify-content:center"><button class="btn pri" id="o-go">ابدأ التمرين ⛶</button><button class="btn" id="o-nofs">بدون ملء الشاشة</button></div>`);
   $('#o-go').onclick=()=>{$('#over').hidden=true;goFull();start(mission)};$('#o-nofs').onclick=()=>{$('#over').hidden=true;start(mission)}}
@@ -574,6 +615,8 @@ window.Sim=(()=>{
  function showLocked(m){box(`<h3>🔒 ${m.title}</h3><p>هذي المهمة للحسابات المفعّلة. فعّل حسابك بـ ${window.priceHTML?priceHTML():'٢٥ ريال'} لمرة واحدة، وتنفتح لك كل المهام والدروس.</p><div class="row" style="justify-content:center"><a class="btn pri" href="#pay" id="o-pay">فعّل حسابك</a><button class="btn" id="o-cl">رجوع</button></div>`);
   $('#o-pay').onclick=()=>exitFull();$('#o-cl').onclick=()=>{$('#over').hidden=true}}
  return{
+  autopilot(list,on){AP={list,k:0,on,camEvery:13,camT:0,ci:0,i:0,hold:0,armT:0,yd:0,plan:[]};opt.level=1;TU.dz=8;introShown=true;$('#over').hidden=true;start(MISSIONS.find(x=>x.id===list[0]));setCam('chase')},
+  get input(){return IN},get state(){return {alt:S.pos?S.pos.y:0,spd:S.vel?Math.hypot(S.vel.x,S.vel.z):0,bat:S.bat,armed:S.armed,mission:mission&&mission.id,t:S.t}},
   setLocked(v){locked=!!v;if(inited){renderMissions();if(isLocked(mission))start(MISSIONS[1])}},
   enter(){if(!ok){$('#simbay').innerHTML='<div class="over"><div class="box"><h3>تعذّر تحميل المحاكي</h3><p>تحقق من اتصالك بالإنترنت ثم أعد تحميل الصفحة.</p></div></div>';return}
    if(!inited){inited=true;build()}if(!running){running=true;clock.getDelta();loop();if(AU.ctx)AU.ctx.resume().catch(()=>{})}},

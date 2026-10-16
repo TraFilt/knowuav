@@ -383,9 +383,12 @@ function vPay(){
   if(S.profile.blocked){ el.innerHTML = statusCard(); return; }
   if(access()){ el.innerHTML = `<div class="card status"><div><div class="eyebrow">حسابك مفعّل</div><h2>كل شي مفتوح لك</h2><p>حسابك مفعّل، وكل الدروس والاختبارات والمحاكي متاحة لك.</p></div><a class="btn pri" href="#home">إلى الدروس</a></div>`; return; }
   const rows = [['البنك', st.bank_name], ['اسم صاحب الحساب', st.account_name], ['الآيبان IBAN', st.iban], ['STC Pay', st.stcpay]].filter(r => r[1]);
-  el.innerHTML = `<div class="sec-h"><div><div class="eyebrow">تفعيل الحساب</div><h2>فعّل حسابك بـ ${priceHTML(st)}</h2><p>دفعة واحدة فقط. حوّل المبلغ، ارفع الإيصال، ويتفعّل حسابك مباشرة.</p></div></div>
+  el.innerHTML = `<div class="sec-h"><div><div class="eyebrow">تفعيل الحساب</div><h2>فعّل حسابك بـ <span id="pay-ph">${priceHTML(st)}</span></h2><p>دفعة واحدة فقط. حوّل المبلغ، ارفع الإيصال، ويتفعّل حسابك مباشرة.</p></div></div>
   <div class="pay">
-    <div class="card bank"><h3 style="font-size:18px;margin-bottom:6px">١ · حوّل ${AR(price)} ريال</h3>
+    <div class="card bank"><h3 style="font-size:18px;margin-bottom:6px">١ · حوّل <span id="pay-amt">${AR(price)}</span> ريال</h3>
+      <div class="promo" id="promo"><button type="button" class="promo-t" id="promo-t">عندك كود خصم؟</button>
+        <div class="promo-f" id="promo-f" hidden><input id="promo-in" dir="ltr" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="30" placeholder="CODE"><button type="button" class="btn sm" id="promo-go">تطبيق</button></div>
+        <div class="promo-m" id="promo-m"></div></div>
       ${rows.length ? rows.map(([k,v]) => `<div class="kv"><span>${k}</span><b>${esc(v)}</b>${copyBtn(v)}</div>`).join('') : `<p style="color:var(--muted)">بيانات التحويل تُضاف قريباً. تواصل معنا على واتساب <b class="mono" dir="ltr">${K.WHATSAPP_DISPLAY}</b> وسنرسلها لك فوراً.</p>`}
       ${st.pay_note ? `<p class="note">${esc(st.pay_note)}</p>` : ''}
     </div>
@@ -399,7 +402,24 @@ function vPay(){
     </form>
   </div>`;
   el.querySelectorAll('[data-copy]').forEach(b => b.onclick = async () => { try { await navigator.clipboard.writeText(b.dataset.copy); toast('تم النسخ'); } catch(e){ toast('انسخه يدوياً'); } });
-  let file = null;
+  let file = null, promo = null;
+  $('#promo-t').onclick = () => { $('#promo-f').hidden = false; $('#promo-t').hidden = true; $('#promo-in').focus(); };
+  const applyPromo = async () => {
+    const code = $('#promo-in').value.trim().toUpperCase(), m = $('#promo-m'), b = $('#promo-go');
+    if(!code){ m.className = 'promo-m bad'; m.textContent = 'اكتب الكود.'; return; }
+    b.disabled = true; m.className = 'promo-m'; m.textContent = 'جارٍ التحقق…';
+    const { data, error } = await sb.rpc('check_promo', { p_code: code });
+    b.disabled = false;
+    if(error || data == null){ promo = null; m.className = 'promo-m bad'; m.textContent = error ? 'تعذّر التحقق، جرّب مرة ثانية.' : 'الكود غير صحيح أو منتهي.'; $('#pay-amt').textContent = AR(price); $('#pay-ph').innerHTML = priceHTML(st); return; }
+    const np = +data; promo = { code, price: np };
+    $('#pay-amt').textContent = AR(np);
+    $('#pay-ph').innerHTML = np < price ? `${AR(np)} <s class="was">${AR(price)}</s> ريال` : priceHTML(st);
+    m.className = 'promo-m ok'; m.innerHTML = np < price ? `تم تطبيق الكود <b dir="ltr">${esc(code)}</b>. المبلغ صار ${AR(np)} ريال.` : `الكود <b dir="ltr">${esc(code)}</b> صحيح، وسعرك الحالي أقل منه أو يساويه.`;
+    $('#promo-in').disabled = true; b.textContent = 'إلغاء'; b.onclick = clearPromo;
+  };
+  const clearPromo = () => { promo = null; $('#promo-in').disabled = false; $('#promo-in').value = ''; $('#promo-m').textContent = ''; $('#pay-amt').textContent = AR(price); $('#pay-ph').innerHTML = priceHTML(st); const b = $('#promo-go'); b.textContent = 'تطبيق'; b.onclick = applyPromo; };
+  $('#promo-go').onclick = applyPromo;
+  $('#promo-in').onkeydown = e => { if(e.key === 'Enter'){ e.preventDefault(); applyPromo(); } };
   const upd = () => { $('#pay-go').disabled = !(file && $('#pay-agree').checked && $('#pay-name').value.trim()); };
   $('#pay-file').onchange = e => {
     file = e.target.files[0] || null; $('#pay-err').textContent = '';
@@ -417,14 +437,14 @@ function vPay(){
       const path = `${S.user.id}/${Date.now()}.${ext}`;
       const up = await sb.storage.from('receipts').upload(path, file, { contentType: file.type || 'application/octet-stream', upsert: false });
       if(up.error) throw up.error;
-      const { error } = await sb.rpc('submit_receipt', { p_path: path, p_sender: $('#pay-name').value.trim() });
+      const { error } = await sb.rpc('submit_receipt', Object.assign({ p_path: path, p_sender: $('#pay-name').value.trim() }, promo ? { p_code: promo.code } : {}));
       if(error) throw error;
       await refreshProfile();
       toast('تم تفعيل حسابك. بالتوفيق!');
       location.hash = '#home';
     } catch(err){
       const m = err.message || String(err);
-      $('#pay-err').textContent = /blocked/.test(m) ? 'حسابك موقوف. تواصل مع الدعم.' : /already submitted/.test(m) ? 'رفعت إيصالاً قبل قليل. انتظر دقائق.' : /mime|type/i.test(m) ? 'نوع الملف غير مدعوم. ارفع صورة أو PDF.' : 'تعذّر الرفع: ' + m;
+      $('#pay-err').textContent = /blocked/.test(m) ? 'حسابك موقوف. تواصل مع الدعم.' : /already submitted/.test(m) ? 'رفعت إيصالاً قبل قليل. انتظر دقائق.' : /bad code/.test(m) ? 'كود الخصم انتهى أو ما عاد صالح. ألغِ الكود وارفع مرة ثانية.' : /mime|type/i.test(m) ? 'نوع الملف غير مدعوم. ارفع صورة أو PDF.' : 'تعذّر الرفع: ' + m;
       b.disabled = false; b.textContent = 'فعّل حسابك';
     }
   };

@@ -228,7 +228,7 @@ table.t tbody tr:hover{background:#ffffff06}
       const box = $('#rc-l-' + mode);
       box.innerHTML = list.map(p => { const u = map[p.receipt_path], pr = profiles[p.user_id] || {}; const pdf = /\.pdf$/i.test(p.receipt_path);
         return `<div class="rc" data-id="${p.id}" data-u="${p.user_id}"><div class="img">${u ? (pdf ? `<a href="${u}" target="_blank" rel="noopener">فتح ملف PDF</a>` : `<img src="${u}" alt="إيصال" loading="lazy">`) : '<span class="note">الملف غير متاح</span>'}</div>
-          <div class="meta"><div style="display:flex;justify-content:space-between;gap:8px"><b>${esc(p.sender_name || '—')}</b>${lbl[p.status]}</div><div class="em" data-who title="عرض تفاصيل العميل">${esc(pr.email || p.user_id)}</div><div class="note">${fmt(p.created_at)} · ${esc(p.amount ?? '')} ر.س${p.reviewed_at ? ' · روجع ' + ago(p.reviewed_at) : ''}</div>${p.note ? `<div class="note">ملاحظة: ${esc(p.note)}</div>` : ''}</div>
+          <div class="meta"><div style="display:flex;justify-content:space-between;gap:8px"><b>${esc(p.sender_name || '—')}</b>${lbl[p.status]}</div><div class="em" data-who title="عرض تفاصيل العميل">${esc(pr.email || p.user_id)}</div><div class="note">${fmt(p.created_at)} · ${esc(p.amount ?? '')} ر.س${p.promo_code ? ' · كود <b dir="ltr">' + esc(p.promo_code) + '</b>' : ''}${p.reviewed_at ? ' · روجع ' + ago(p.reviewed_at) : ''}</div>${p.note ? `<div class="note">ملاحظة: ${esc(p.note)}</div>` : ''}</div>
           ${p.status === 'pending' ? `<div class="acts"><button class="btn pri sm" data-ok>قبول</button><button class="btn sm no" data-no>رفض وإيقاف الحساب</button></div>` : ''}</div>`; }).join('') || '<div class="empty" style="grid-column:1/-1">لا نتائج.</div>';
       box.querySelectorAll('.rc img').forEach(i => i.onclick = () => { const lb = document.createElement('div'); lb.className = 'lb'; lb.innerHTML = `<img src="${i.src}" alt="إيصال">`; lb.onclick = () => lb.remove(); document.body.appendChild(lb); });
       box.querySelectorAll('.rc').forEach(card => {
@@ -352,6 +352,44 @@ table.t tbody tr:hover{background:#ffffff06}
     el.innerHTML = `<div class="card"><p class="note" style="margin-top:0">هذه البيانات تظهر للمستخدم في صفحة الدفع. الحقل الفارغ لا يظهر.</p><form id="set-f" class="set">${F.map(([k, l]) => `<label class="field">${l}<input name="${k}" value="${esc(s[k] || '')}" ${['iban','stcpay','price','offer_price','offer_until'].includes(k) ? 'dir="ltr"' : ''}></label>`).join('')}</form><div class="row" style="margin-top:16px"><button class="btn pri" id="set-save">حفظ</button></div></div>`;
     $('#set-save').onclick = async () => { const rows = [...new FormData($('#set-f')).entries()].map(([key, value]) => ({key, value: String(value).trim()}));
       const { error } = await sb.from('app_settings').upsert(rows); if(error) return toast(error.message, 1); toast('تم الحفظ'); };
+    el.insertAdjacentHTML('beforeend', `<div class="card" style="margin-top:16px"><h3 style="font-size:18px;margin-bottom:4px">أكواد الخصم</h3>
+      <p class="note" style="margin-top:0">المستخدم يكتب الكود في صفحة الدفع ويتغيّر المبلغ للسعر اللي تحدده. اترك «عدد الاستخدامات» فاضي = بلا حد، و«ينتهي» فاضي = بدون نهاية.</p>
+      <form id="pc-f" class="set" style="align-items:end">
+        <label class="field">الكود<input name="code" dir="ltr" maxlength="30" placeholder="KNOW15" required style="text-transform:uppercase"></label>
+        <label class="field">السعر بالكود (ريال)<input name="price" dir="ltr" inputmode="decimal" value="15" required></label>
+        <label class="field">عدد الاستخدامات<input name="max_uses" dir="ltr" inputmode="numeric" placeholder="بلا حد"></label>
+        <label class="field">ينتهي<input name="expires_at" type="datetime-local" dir="ltr"></label>
+        <label class="field">ملاحظة<input name="note" maxlength="80" placeholder="مثلاً: متابعين تيك توك"></label>
+      </form>
+      <div class="row" style="margin-top:12px"><button class="btn pri" id="pc-add">إضافة الكود</button></div>
+      <div id="pc-l" style="margin-top:16px"></div></div>`);
+    const pcList = async () => {
+      const box = $('#pc-l'); const { data, error } = await sb.from('promo_codes').select('*').order('created_at', {ascending:false});
+      if(error) return box.innerHTML = `<div class="note">${/promo_codes/.test(error.message) ? 'جدول الأكواد غير موجود بعد. شغّل ملف supabase/promo.sql في Supabase.' : esc(error.message)}</div>`;
+      if(!data.length) return box.innerHTML = '<div class="note">ما فيه أكواد بعد.</div>';
+      const live = c => c.active && (!c.expires_at || new Date(c.expires_at) > new Date()) && (!c.max_uses || c.uses < c.max_uses);
+      box.innerHTML = `<div style="overflow-x:auto"><table class="mini" style="width:100%"><thead><tr><th>الكود</th><th>السعر</th><th>استُخدم</th><th>ينتهي</th><th>الحالة</th><th>ملاحظة</th><th></th></tr></thead><tbody>${data.map(c => `<tr data-c="${esc(c.code)}">
+        <td><b class="mono" dir="ltr">${esc(c.code)}</b></td><td class="num">${esc(c.price)} ر.س</td><td class="num">${n(c.uses)}${c.max_uses ? ' / ' + n(c.max_uses) : ''}</td><td>${c.expires_at ? fmt(c.expires_at) : '—'}</td>
+        <td>${live(c) ? '<span class="chip ok">شغّال</span>' : c.active ? '<span class="chip">منتهي</span>' : '<span class="chip bad">موقوف</span>'}</td><td>${esc(c.note || '')}</td>
+        <td style="white-space:nowrap"><button class="btn sm" data-tg>${c.active ? 'إيقاف' : 'تشغيل'}</button> <button class="btn sm" data-del>حذف</button></td></tr>`).join('')}</tbody></table></div>`;
+      box.querySelectorAll('tr[data-c]').forEach(tr => { const code = tr.dataset.c, c = data.find(x => x.code === code);
+        tr.querySelector('[data-tg]').onclick = async () => { const { error } = await sb.from('promo_codes').update({ active: !c.active }).eq('code', code); if(error) return toast(error.message, 1); toast(c.active ? 'تم إيقاف الكود' : 'تم تشغيل الكود'); pcList(); };
+        tr.querySelector('[data-del]').onclick = async e => { const b = e.currentTarget; if(!b.dataset.sure){ b.dataset.sure = 1; b.textContent = 'متأكد؟'; setTimeout(() => { delete b.dataset.sure; b.textContent = 'حذف'; }, 3000); return; }
+          const { error } = await sb.from('promo_codes').delete().eq('code', code); if(error) return toast(error.message, 1); toast('تم حذف الكود'); pcList(); };
+      });
+    };
+    $('#pc-add').onclick = async () => {
+      const f = Object.fromEntries(new FormData($('#pc-f')).entries());
+      const code = String(f.code || '').trim().toUpperCase().replace(/\s+/g, ''), price = +String(f.price).trim(), mu = String(f.max_uses || '').trim();
+      if(!/^[A-Z0-9_-]{3,30}$/.test(code)) return toast('الكود لازم ٣ أحرف أو أكثر، إنجليزي وأرقام بس', 1);
+      if(!(price >= 0)) return toast('اكتب السعر رقم', 1);
+      if(mu && !(+mu > 0)) return toast('عدد الاستخدامات لازم رقم أكبر من صفر', 1);
+      const row = { code, price, max_uses: mu ? Math.floor(+mu) : null, expires_at: f.expires_at ? new Date(f.expires_at).toISOString() : null, note: String(f.note || '').trim() || null, active: true };
+      const { error } = await sb.from('promo_codes').insert(row);
+      if(error) return toast(/duplicate|unique/.test(error.message) ? 'هذا الكود موجود' : error.message, 1);
+      toast('تمت إضافة الكود'); $('#pc-f').reset(); $('#pc-f').price.value = '15'; pcList();
+    };
+    pcList();
   }
 
   /* ---------- tabs ---------- */

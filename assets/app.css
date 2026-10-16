@@ -379,3 +379,12 @@ body.sim-noscroll{overflow:hidden;overscroll-behavior:none}
 .tn-box2 i{position:absolute;left:50%;top:50%;width:14px;height:14px;margin:-7px;border-radius:50%;background:var(--sand);box-shadow:0 0 10px #d8bf8688}
 .tn-foot{display:flex;justify-content:space-between;gap:8px;margin:14px 0 6px}
 @media (max-width:520px){.tn-inv{grid-template-columns:1fr}}
+
+/* discount code on the payment page */
+.promo{margin:4px 0 12px}
+.promo-t{font:inherit;font-size:14px;background:none;border:0;color:var(--sand);cursor:pointer;padding:0;text-decoration:underline;text-underline-offset:4px}
+.promo-f{display:flex;gap:8px}
+.promo-f input{font-family:var(--f-mono);font-size:15px;letter-spacing:.06em;text-transform:uppercase;flex:1;min-width:0;background:var(--ground);color:var(--text);border:1px solid var(--line2);border-radius:10px;padding:9px 12px}
+.promo-f input:disabled{opacity:.7}
+.promo-m{font-size:13px;margin-top:6px;color:var(--muted)}.promo-m:empty{display:none}
+.promo-m.ok{color:var(--ok)}.promo-m.bad{color:var(--bad)}

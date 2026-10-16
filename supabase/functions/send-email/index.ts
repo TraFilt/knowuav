@@ -44,7 +44,35 @@ Know UAV منصة تعليمية مستقلة · <a href="${SITE}" style="color:
 
 const p = (t: string) => `<p style="margin:0 0 12px;color:#cfc9b8">${t}</p>`;
 
-function build(d: Record<string, any>): { to: string; subject: string; html: string }[] {
+type Mail = { to: string; subject: string; html: string; headers?: Record<string, string> };
+
+// promotional email to accounts that signed up but did not activate (sent in batches from the admin panel)
+function promo(d: Record<string, any>, it: Record<string, any>): Mail {
+  const name = first(it.name);
+  const unsub = `${SITE}/unsubscribe?t=${encodeURIComponent(it.token || "")}`;
+  const code = d.code ? esc(d.code) : "";
+  const hasDeal = code && d.price != null && +d.price < +d.base;
+  const li = (t: string) => `<tr><td style="padding:6px 0;color:#cfc9b8;font-size:15px">✔️ ${t}</td></tr>`;
+  const html = shell(`${name ? name + "، " : ""}طيارتك تنتظرك 🚁`,
+    p("سجّلت في <b style=\"color:#f2ead2\">Know UAV</b> وما لحقت تجرّب. جهّزنا لك تجربة مجانية تبدأها الحين بدون ما تدفع شي:") +
+    `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:4px 0 14px">${li("مهمة <b style=\"color:#f2ead2\">البوابات الليلية</b> في المحاكي")}${li("مهمة <b style=\"color:#f2ead2\">اجمع الكرات</b> داخل المبنى الكبير")}${li("<b style=\"color:#f2ead2\">الدرس الأول</b> كامل مع الاختبار")}</table>` +
+    (hasDeal
+      ? `<div style="margin:6px 0 16px;padding:16px;border:1px dashed #d8bf86;border-radius:12px;background:#0f1511;text-align:center">
+           <div style="color:#9aa595;font-size:13px;margin-bottom:6px">ولو عجبتك، فعّل كل الدروس والمهام بكود الخصم</div>
+           <div style="font-family:'Courier New',monospace;font-size:26px;font-weight:bold;letter-spacing:3px;color:#d8bf86">${code}</div>
+           <div style="margin-top:6px;color:#f2ead2">${ar(d.price)} ريال بدل <s style="color:#9aa595">${ar(d.base)}</s> · دفعة وحدة مدى الحياة</div></div>`
+      : p(`ولو عجبتك، تفعّل كل الدروس والمهام بـ ${ar(d.base)} ريال، دفعة وحدة مدى الحياة.`)),
+    { href: `${SITE}/app#sim`, label: "جرّب المحاكي مجاناً" });
+  const foot = `<p style="text-align:center;font-family:Tahoma,Arial,sans-serif;font-size:12px;color:#6a7568;margin:14px 0 0">وصلك هذا الإيميل لأنك سجّلت في knowuav.com · <a href="${unsub}" style="color:#6a7568">إلغاء الاشتراك في الرسائل</a></p>`;
+  return {
+    to: it.email,
+    subject: hasDeal ? `جرّب المحاكي مجاناً + كود خصم ${d.code} 🚁` : "جرّب محاكي الدرون مجاناً 🚁",
+    html: html.replace("</td></tr></table></body>", foot + "</td></tr></table></body>"),
+    headers: { "List-Unsubscribe": `<${unsub}>, <mailto:${REPLY}?subject=unsubscribe>` },
+  };
+}
+
+function build(d: Record<string, any>): Mail[] {
   const name = first(d.name);
   switch (d.type) {
     case "welcome":
@@ -53,7 +81,7 @@ function build(d: Record<string, any>): { to: string; subject: string; html: str
         subject: "أهلاً فيك في Know UAV 🚁",
         html: shell(`أهلاً ${name || "فيك"} 👋`,
           p("حياك الله في <b style=\"color:#f2ead2\">Know UAV</b>، حسابك جاهز.") +
-          p("ابدأ بـ<b style=\"color:#f2ead2\">الدرس الأول المجاني</b>، وبعده جرّب <b style=\"color:#f2ead2\">التمرين المجاني في المحاكي</b>: أقلع وحوّم بالطيارة بنفسك، باللمس أو الكيبورد أو يد البلايستيشن والإكس بوكس.") +
+          p("ابدأ بـ<b style=\"color:#f2ead2\">الدرس الأول المجاني</b>، وبعده جرّب المحاكي مجاناً: مهمة <b style=\"color:#f2ead2\">البوابات الليلية</b> ومهمة <b style=\"color:#f2ead2\">اجمع الكرات</b> داخل المبنى الكبير، باللمس أو الكيبورد أو يد البلايستيشن والإكس بوكس.") +
           p("💻 نصيحة: المحاكي أمتع على الكمبيوتر بشاشة أكبر."),
           { href: `${SITE}/app#home`, label: "ابدأ الدرس الأول" }),
       }];
@@ -79,6 +107,8 @@ function build(d: Record<string, any>): { to: string; subject: string; html: str
       });
       return out;
     }
+    case "promo":
+      return (Array.isArray(d.items) ? d.items : []).slice(0, 100).map((it: Record<string, any>) => promo(d, it));
     case "rejected":
       return [{
         to: d.email,
@@ -101,13 +131,24 @@ Deno.serve(async (req) => {
   try { d = await req.json(); } catch { return new Response("bad json", { status: 400 }); }
   const mails = build(d).filter((m) => m.to);
   const res: string[] = [];
+  // promo batches go through Resend's batch endpoint: one request for up to 100 emails (stays under the rate limit)
+  if (RESEND && d.type === "promo" && mails.length) {
+    const r = await fetch("https://api.resend.com/emails/batch", {
+      method: "POST",
+      headers: { Authorization: "Bearer " + RESEND, "content-type": "application/json" },
+      body: JSON.stringify(mails.map((m) => ({ from: `Know UAV <${FROM}>`, reply_to: REPLY, to: [m.to], subject: m.subject, html: m.html, headers: m.headers }))),
+    });
+    const t = await r.text();
+    if (!r.ok) console.error("resend batch failed", r.status, t.slice(0, 300));
+    return new Response(JSON.stringify({ type: d.type, n: mails.length, ok: r.ok, status: r.status, body: t.slice(0, 300) }), { headers: { "content-type": "application/json" } });
+  }
   for (const m of mails) {
     try {
       if (RESEND) {
         const r = await fetch("https://api.resend.com/emails", {
           method: "POST",
           headers: { Authorization: "Bearer " + RESEND, "content-type": "application/json" },
-          body: JSON.stringify({ from: `Know UAV <${FROM}>`, reply_to: REPLY, to: [m.to], subject: m.subject, html: m.html }),
+          body: JSON.stringify({ from: `Know UAV <${FROM}>`, reply_to: REPLY, to: [m.to], subject: m.subject, html: m.html, headers: m.headers }),
         });
         if (!r.ok) throw new Error("resend " + r.status + " " + (await r.text()).slice(0, 200));
       } else if (BREVO) {

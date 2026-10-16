@@ -21,6 +21,7 @@ function start(session){
     try { await loadUser(); }
     catch(e){ console.error(e); toast('تعذّر تحميل بياناتك. حدّث الصفحة.', 1); }
     $('#boot').hidden = true; route();
+    setTimeout(welcome, 400);
   })();
   return loading;
 }
@@ -124,6 +125,24 @@ async function squareImage(file, size = 256){
   } finally { URL.revokeObjectURL(url); }
 }
 
+// ---------------- first-visit welcome: two free ways in ----------------
+function welcome(){
+  if(!S.user || access() || (S.profile && S.profile.blocked) || recovering) return;
+  if(Object.keys(S.progress || {}).length) return;
+  const k = 'ku_welcome_' + S.user.id;
+  try { if(localStorage.getItem(k)) return; localStorage.setItem(k, '1'); } catch(e){ return; }
+  const fl = (S.catalog || []).find(l => l.is_free) || { id: '1-1', title: 'الدرس الأول' };
+  const d = document.createElement('div'); d.className = 'wel'; d.setAttribute('role', 'dialog'); d.setAttribute('aria-modal', 'true');
+  d.innerHTML = `<div class="wel-box"><button class="wel-x" aria-label="إغلاق">✕</button>
+    <div class="wel-ic">🎉</div><h2>مبروك التسجيل!</h2><p>حسابك جاهز. ابدأ الحين بتجربة مجانية، اختر وحدة:</p>
+    <a class="wel-opt" href="#sim/night"><span class="i">🎮</span><span><b>جرّب المحاكي</b><small>البوابات الليلية واجمع الكرات · مجاناً</small></span><span class="wel-go">←</span></a>
+    <a class="wel-opt" href="#l/${esc(fl.id)}"><span class="i">📘</span><span><b>ادخل الدرس الأول</b><small>${esc(fl.title)} · مجاني</small></span><span class="wel-go">←</span></a></div>`;
+  const close = () => d.remove();
+  d.onclick = e => { if(e.target === d || e.target.closest('.wel-x') || e.target.closest('.wel-opt')) close(); };
+  addEventListener('keydown', function esc_(e){ if(e.key === 'Escape'){ close(); removeEventListener('keydown', esc_); } });
+  document.body.appendChild(d);
+}
+
 // ---------------- routing ----------------
 function show(v){
   $$('.view').forEach(x => x.hidden = true);
@@ -143,7 +162,7 @@ function route(){
   if(h === 'pay') return vPay();
   if(h === 'account') return vAccount();
   if(h === 'glossary') return vGlossary();
-  if(h === 'sim') return vSim();
+  if(h === 'sim' || h.startsWith('sim/')) return vSim(h.slice(4));
   vHome();
 }
 
@@ -262,6 +281,7 @@ function renderBody(body){
   }).join('');
 }
 async function vLesson(id){
+  if(player){ player.destroy(); player = null; }
   show('lesson');
   const el = $('#v-lesson'), meta = S.catalog.find(l => l.id === id);
   if(!meta){ el.innerHTML = '<div class="loading">الدرس غير موجود.</div>'; return; }
@@ -277,11 +297,12 @@ async function vLesson(id){
     <h1>${esc(l.title)}</h1><p class="hookline">${esc(l.hook||'')}</p>
     <div id="mp"></div>
     ${renderBody(l.body)}
-    ${meta.is_free ? `<a class="card sim-cta" href="#sim"><span class="ic">🎮</span><div><div class="eyebrow">تمرين عملي مجاني</div><b>جرّب اللي تعلمته في المحاكي</b><p>أقلع وحوّم بالطيارة بنفسك، باللمس أو الكيبورد أو يد التحكم.</p></div><span class="go">ابدأ ←</span></a>` : ''}
+    ${meta.is_free ? `<a class="card sim-cta" href="#sim"><span class="ic">🎮</span><div><div class="eyebrow">تمرين عملي مجاني</div><b>جرّب المحاكي مجاناً</b><p>طِر في «البوابات الليلية» واجمع الكرات داخل المبنى الكبير، باللمس أو الكيبورد أو يد التحكم.</p></div><span class="go">ابدأ ←</span></a>` : ''}
     <section class="quiz" id="quiz"></section>
     <div class="pager">${prev ? `<a class="btn sm" href="#l/${prev.id}">→ ${esc(prev.title)}</a>` : '<span></span>'}${next ? `<a class="btn sm" href="#l/${next.id}">${esc(next.title)} ←</a>` : '<a class="btn sm" href="#final">الاختبار الشامل ←</a>'}</div>
   </article>
   <nav class="side"><div class="eyebrow">${esc(lv.title||'')}</div>${sib.map(x => `<a href="#l/${x.id}" class="${x.id===id?'on':''}"><span>${esc(x.title)}</span>${lessonState(x)==='done'?'<span style="color:var(--ok)">✓</span>':lessonState(x)==='lock'?'<span>🔒</span>':''}</a>`).join('')}</nav></div>`;
+  if(player){ player.destroy(); player = null; }
   player = MotionPlayer($('#mp'), l);
   el.querySelectorAll('[data-w]').forEach(w => W[w.dataset.w] && W[w.dataset.w](w));
   runQuiz($('#quiz'), l.quiz || [], {
@@ -348,15 +369,16 @@ async function vFinal(){
 }
 
 // ---------------- simulator ----------------
-function vSim(){
+function vSim(want){
   show('sim');
   const ok = access();
   $('#sim-wrap').hidden = false; $('#sim-lock').hidden = true;
   $('#pc-tip').hidden = !matchMedia('(pointer:coarse)').matches;
   const fr = $('#sim-free'); fr.hidden = ok;
-  if(!ok) fr.innerHTML = `<span>🎁</span><p><b>تمرين مجاني:</b> جرّب «الطيران الحر» و«الإقلاع والتحويم» و«المبنى الكبير: طيران حر». باقي المهام تنفتح مع تفعيل الحساب بـ ${priceHTML(S.settings)} لمرة واحدة.</p><a class="btn sm pri" href="#pay">فعّل حسابك</a>`;
+  if(!ok) fr.innerHTML = `<span>🎁</span><p><b>مجاناً لك:</b> «البوابات الليلية» و«المبنى الكبير: اجمع الكرات» و«الطيران الحر». باقي المهام تنفتح مع تفعيل الحساب بـ ${priceHTML(S.settings)} لمرة واحدة.</p><a class="btn sm pri" href="#pay">فعّل حسابك</a>`;
   Sim.setLocked(!ok);
   Sim.enter();
+  if(want && Sim.pickMission) Sim.pickMission(want);
   loadBoard(boardMission || 'hover');
 }
 

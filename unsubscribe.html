@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>إلغاء الاشتراك · Know UAV</title><meta name="robots" content="noindex"><link rel="icon" href="/assets/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@500;700&family=Readex+Pro:wght@300;400;600&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="/assets/base.css">
+<style>.box{max-width:520px;margin:60px auto;text-align:center;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:34px 24px}.box h1{font-size:24px;margin-bottom:10px}.box p{color:var(--muted)}</style>
+</head><body>
+<header class="bar"><div class="wrap"><a class="brand" href="/"><img src="/assets/logo.png" alt="Know UAV" width="64" height="30"></a></div></header>
+<main class="wrap"><div class="box" id="box"><h1>جارٍ إلغاء الاشتراك…</h1></div></main>
+<script src="/assets/config.js"></script>
+<script>
+(async () => {
+  const box = document.getElementById('box'), t = new URLSearchParams(location.search).get('t') || '';
+  const done = (h, p) => box.innerHTML = `<h1>${h}</h1><p>${p}</p><p style="margin-top:18px"><a class="btn" href="/">الرجوع للموقع</a></p>`;
+  if(!/^[0-9a-f-]{36}$/i.test(t)) return done('الرابط غير صحيح', 'تأكد إنك فتحت الرابط كامل من الإيميل.');
+  try {
+    const r = await fetch(KU.SUPABASE_URL + '/rest/v1/rpc/email_unsubscribe', { method:'POST', headers:{ apikey:KU.SUPABASE_KEY, Authorization:'Bearer ' + KU.SUPABASE_KEY, 'Content-Type':'application/json' }, body: JSON.stringify({ p_token: t }) });
+    const ok = r.ok && (await r.json()) === true;
+    ok ? done('تم إلغاء الاشتراك ✓', 'ما راح نرسل لك رسائل ترويجية بعد اليوم. رسائل حسابك المهمة (مثل تفعيل الحساب) بتوصلك عادي.')
+       : done('ما لقينا هذا الرابط', 'يمكن انتهى أو انلغى قبل. لو تبي توقف الرسائل، راسلنا على info@knowuav.com.');
+  } catch(e){ done('صار خطأ في الاتصال', 'حدّث الصفحة وجرّب مرة ثانية.'); }
+})();
+</script>
+</body></html>

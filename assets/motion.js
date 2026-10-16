@@ -233,6 +233,12 @@ window.MotionPlayer = function(root, lesson){
   const scenes = lesson.scenes || [];
   const lens = scenes.map(s => (s.say||'').length + 8), totLen = lens.reduce((a,b)=>a+b,0) || 1;
   const audio = new Audio(); audio.preload = 'metadata';
+  // remembered volume, 50% by default (narration was loud at 100%)
+  let vol = .5; try { const v = parseFloat(localStorage.getItem('ku_mp_vol')); if(v >= 0 && v <= 1) vol = v; } catch(e){}
+  audio.volume = vol;
+  // only one lesson narration at a time
+  if(window.__kuAudio && window.__kuAudio !== audio){ try { window.__kuAudio.pause(); } catch(e){} }
+  window.__kuAudio = audio;
   let hasAudio = false, duration = totLen/13.5, t = 0, playing = false, idx = -1, raf = 0, last = 0, muted = false;
   const src = lesson.audio_url || (window.KU.SUPABASE_URL + '/storage/v1/object/public/audio/' + lesson.id + '.mp3');
   root.innerHTML = `<div class="mp">
@@ -245,6 +251,7 @@ window.MotionPlayer = function(root, lesson){
       <div class="mp-segs">${scenes.map(()=>'<i><b></b></i>').join('')}</div>
       <span class="mp-time mono">0:00</span>
       <button class="mp-mute" aria-label="كتم الصوت"></button>
+      <input class="mp-vol" type="range" min="0" max="100" step="5" aria-label="مستوى الصوت">
       <button class="mp-sub on" aria-label="الترجمة">CC</button>
     </div></div>`;
   const svg = root.querySelector('svg'), cap = root.querySelector('.mp-cap'), big = root.querySelector('.mp-big'), segs = [...root.querySelectorAll('.mp-segs i')];
@@ -291,10 +298,14 @@ window.MotionPlayer = function(root, lesson){
   }
   big.onclick = play;
   playB.onclick = () => playing ? stop() : play();
-  muteB.onclick = () => { muted = !muted; audio.muted = muted; muteB.innerHTML = muted ? ICON_MUTE : ICON_VOL; };
+  const volI = root.querySelector('.mp-vol');
+  const paintVol = () => { volI.value = Math.round((muted ? 0 : vol) * 100); volI.style.setProperty('--v', volI.value + '%'); muteB.innerHTML = muted || vol === 0 ? ICON_MUTE : ICON_VOL; };
+  muteB.onclick = () => { muted = !muted; if(!muted && vol === 0) vol = .5; audio.muted = muted; audio.volume = vol; paintVol(); };
+  volI.oninput = () => { vol = +volI.value / 100; muted = vol === 0; audio.muted = muted; audio.volume = vol; try { localStorage.setItem('ku_mp_vol', String(vol)); } catch(e){} paintVol(); };
+  paintVol();
   subB.onclick = () => { subB.classList.toggle('on'); cap.hidden = !subB.classList.contains('on'); };
   segs.forEach((sg, k) => sg.onclick = () => { t = k ? B[k-1] : 0; if(hasAudio) audio.currentTime = t; idx = -1; if(!playing) play(); else tick(); });
   show(0); try { svg.pauseAnimations(); } catch(e){}
-  return { destroy(){ stop(); audio.src = ''; } };
+  return { destroy(){ stop(); try { audio.removeAttribute('src'); audio.load(); } catch(e){} if(window.__kuAudio === audio) window.__kuAudio = null; } };
 };
 })();

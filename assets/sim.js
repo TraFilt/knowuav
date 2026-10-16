@@ -1,7 +1,7 @@
 // Know UAV — 3D flight trainer (keyboard, PlayStation/Xbox gamepad, touch)
 window.MISSIONS=[
  {id:'free',title:'طيران حر',brief:'طِر بحرية في الميدان. جرّب المحاور الأربعة وأوضاع الكاميرا.',free:true,par:0},
- {id:'hover',title:'الإقلاع والتحويم',brief:'أقلع وحوّم فوق المهبط على ارتفاع ٣ أمتار لمدة ٥ ثوانٍ متصلة.',free:true,par:20},
+ {id:'hover',title:'الإقلاع والتحويم',brief:'أقلع وحوّم فوق المهبط على ارتفاع ٣ أمتار لمدة ٥ ثوانٍ متصلة.',par:20},
  {id:'box',title:'المربع',brief:'مرّ على النقاط الأربع بالترتيب على ارتفاع ٤ أمتار.',par:45},
  {id:'gates',title:'البوابات',brief:'مرّ من داخل البوابات الست بالترتيب.',par:60},
  {id:'land',title:'الهبوط الدقيق',brief:'طِر إلى المهبط البعيد واهبط في مركزه بهدوء.',par:40},
@@ -11,9 +11,9 @@ window.MISSIONS=[
  {id:'orbit',title:'الدوران حول البرج',brief:'لِف دورة كاملة حول البرج على بُعد ٤ إلى ٩ أمتار وارتفاع ٢ إلى ٧ أمتار.',par:35},
  {id:'low',title:'الممر المنخفض',brief:'مرّ من الحلقات الخمس بالترتيب، ولا ترتفع فوق ٣ أمتار.',par:40},
  {id:'pads',title:'الهبوط على ثلاث منصات',brief:'اهبط على المنصات الثلاث بالترتيب، وتوقّف تماماً على كل وحدة.',par:60},
- {id:'night',title:'البوابات الليلية',brief:'البوابات الست بالليل. اعتمد على الإضاءة وخفّف سرعتك.',par:70},
- {id:'hangar',title:'المبنى الكبير: طيران حر',brief:'مستودع ضخم فيه رفوف وحاويات ودور علوي وجسر رافعة ونفق. استكشف بحرية، وجرّب تهبط فوق الحاويات والدور العلوي.',par:0,map:'hangar',free:true},
- {id:'coins',title:'المبنى الكبير: اجمع الكرات',brief:'١٥ كرة ذهبية داخل المبنى: بين الرفوف، تحت الدور العلوي، داخل الحاوية وفوق الجسور. اجمعها كلها بأي ترتيب.',par:150,map:'hangar'}
+ {id:'night',title:'البوابات الليلية',brief:'البوابات الست بالليل. اعتمد على الإضاءة وخفّف سرعتك.',par:70,free:true},
+ {id:'hangar',title:'المبنى الكبير: طيران حر',brief:'مستودع ضخم فيه رفوف وحاويات ودور علوي وجسر رافعة ونفق. استكشف بحرية، وجرّب تهبط فوق الحاويات والدور العلوي.',par:0,map:'hangar'},
+ {id:'coins',title:'المبنى الكبير: اجمع الكرات',brief:'١٥ كرة ذهبية داخل المبنى: بين الرفوف، تحت الدور العلوي، داخل الحاوية وفوق الجسور. اجمعها كلها بأي ترتيب.',par:150,map:'hangar',free:true}
 ];
 window.Sim=(()=>{
  let ok=typeof THREE!=='undefined',inited=false,running=false,raf=0;
@@ -672,7 +672,8 @@ window.Sim=(()=>{
   setVol(v){AU.vol=Math.max(0,Math.min(1,+v||0));AU.on=AU.vol>0;auSave()},
   get missions(){return MISSIONS.map(m=>({id:m.id,title:m.title}))},
   get input(){return IN},get state(){return {alt:S.pos?S.pos.y:0,spd:S.vel?Math.hypot(S.vel.x,S.vel.z):0,bat:S.bat,armed:S.armed,mission:mission&&mission.id,t:S.t}},
-  setLocked(v){locked=!!v;if(inited){renderMissions();if(isLocked(mission))start(MISSIONS[1])}},
+  setLocked(v){locked=!!v;if(inited){renderMissions();if(isLocked(mission))start(MISSIONS.find(m=>m.id==='night')||MISSIONS[0])}},
+  pickMission(id){const m=MISSIONS.find(x=>x.id===id);if(m&&inited&&!isLocked(m))start(m)},
   enter(){if(!ok){$('#simbay').innerHTML='<div class="over"><div class="box"><h3>تعذّر تحميل المحاكي</h3><p>تحقق من اتصالك بالإنترنت ثم أعد تحميل الصفحة.</p></div></div>';return}
    if(!inited){inited=true;build()}if(!running){running=true;clock.getDelta();loop();if(AU.ctx)AU.ctx.resume().catch(()=>{})}},
   leave(){running=false;cancelAnimationFrame(raf);if(full)exitFull();if(AU.ctx)AU.ctx.suspend().catch(()=>{})}

@@ -46,7 +46,10 @@ main{padding-block:24px 60px}
 .rc{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;display:flex;flex-direction:column}
 .rc .img{aspect-ratio:4/3;background:#000;display:grid;place-items:center;overflow:hidden}
 .rc .img img{width:100%;height:100%;object-fit:contain;cursor:zoom-in}
-.rc .img a{color:var(--sand)}
+.rc .img{position:relative}.rc .img a{color:var(--sand)}
+.pdfv{width:100%;height:100%;display:grid;place-items:center;background:#fff;cursor:zoom-in}.pdfv canvas{max-width:100%;max-height:100%;display:block}
+.pdfo{position:absolute;top:8px;inset-inline-start:8px;background:#000b;color:var(--sand);font-size:12px;padding:3px 10px;border-radius:999px;text-decoration:none;font-family:var(--f-mono)}
+.lb.pdf{overflow:auto;place-items:start center}.lb.pdf canvas{display:block;max-width:min(900px,100%);height:auto;margin:0 auto 12px;border-radius:8px;background:#fff}
 .rc .meta{padding:12px 14px;display:grid;gap:4px;font-size:14px}
 .rc .meta .em{font-family:var(--f-mono);direction:ltr;text-align:right;color:var(--muted);font-size:12px;word-break:break-all;cursor:pointer}
 .rc .acts{display:flex;gap:8px;padding:0 14px 14px}
@@ -207,6 +210,31 @@ table.t tbody tr:hover{background:#ffffff06}
   }
 
   /* ---------- receipts ---------- */
+  // PDF receipts: draw them on the card (pdf.js), click to see every page full size
+  let pdfLib = null;
+  const loadPdf = () => pdfLib || (pdfLib = new Promise((ok, no) => { const sc = document.createElement('script'); sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+    sc.onload = () => { pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; ok(pdfjsLib); }; sc.onerror = () => { pdfLib = null; no(new Error('pdf.js')); }; document.head.appendChild(sc); }));
+  const pdfDocs = {};
+  const getPdf = async url => pdfDocs[url] || (pdfDocs[url] = (await loadPdf()).getDocument(url).promise);
+  async function pageCanvas(doc, n, width){ const pg = await doc.getPage(n), v0 = pg.getViewport({scale:1}), sc = width / v0.width, vp = pg.getViewport({scale: sc});
+    const c = document.createElement('canvas'); c.width = Math.ceil(vp.width); c.height = Math.ceil(vp.height); await pg.render({canvasContext: c.getContext('2d'), viewport: vp}).promise; return c; }
+  async function drawPdf(el){
+    if(el.dataset.done) return; el.dataset.done = 1;
+    try { const doc = await getPdf(el.dataset.pdf), dpr = Math.min(2, devicePixelRatio || 1);
+      const c = await pageCanvas(doc, 1, Math.max(320, el.clientWidth) * dpr); el.innerHTML = ''; el.appendChild(c);
+      if(doc.numPages > 1) el.insertAdjacentHTML('beforeend', `<span class="pdfo" style="inset-inline-start:auto;inset-inline-end:8px">${doc.numPages} صفحات</span>`);
+      el.onclick = async () => { const lb = document.createElement('div'); lb.className = 'lb pdf'; lb.innerHTML = '<div class="note">جارٍ التحميل…</div>'; lb.onclick = e => { if(e.target === lb || e.target.tagName === 'CANVAS') lb.remove(); }; document.body.appendChild(lb);
+        const w = Math.min(900, innerWidth - 32) * dpr; const wrap = document.createElement('div'); wrap.style.width = '100%';
+        for(let i = 1; i <= Math.min(doc.numPages, 10); i++){ const pc = await pageCanvas(doc, i, w); pc.style.width = Math.min(900, innerWidth - 32) + 'px'; wrap.appendChild(pc); }
+        lb.innerHTML = ''; lb.appendChild(wrap); };
+    } catch(e){ el.innerHTML = `<a href="${esc(el.dataset.pdf)}" target="_blank" rel="noopener">تعذّر العرض · فتح ملف PDF</a>`; el.style.cursor = 'auto'; el.style.background = '#000'; }
+  }
+  const pdfIO = 'IntersectionObserver' in window ? new IntersectionObserver(es => es.forEach(e => { if(e.isIntersecting){ pdfIO.unobserve(e.target); drawPdf(e.target); } }), {rootMargin:'300px'}) : null;
+  document.addEventListener('click', async e => { const a = e.target.closest('a[data-view]'); if(!a) return; e.preventDefault();
+    if(a.dataset.view === 'img'){ const lb = document.createElement('div'); lb.className = 'lb'; lb.innerHTML = `<img src="${esc(a.href)}" alt="إيصال">`; lb.onclick = () => lb.remove(); document.body.appendChild(lb); return; }
+    const t = document.createElement('div'); t.className = 'pdfv'; t.dataset.pdf = a.href; t.style.display = 'none'; document.body.appendChild(t); await drawPdf(t); if(t.onclick) t.click(); else window.open(a.href, '_blank', 'noopener'); t.remove(); });
+  const showPdfs = box => box.querySelectorAll('.pdfv').forEach(el => pdfIO ? pdfIO.observe(el) : drawPdf(el));
+
   let rcFilter = 'all', rcQ = '';
   async function receipts(el, mode){
     el.innerHTML = '<div class="empty">جارٍ التحميل…</div>';
@@ -227,10 +255,11 @@ table.t tbody tr:hover{background:#ffffff06}
       const sumEl = $('#rc-sum'); if(sumEl) sumEl.innerHTML = `${n(list.length)} إيصال · المجموع <b>${n(list.filter(p => p.status !== 'rejected').reduce((a, p) => a + (+p.amount || 0), 0))}</b> ر.س`;
       const box = $('#rc-l-' + mode);
       box.innerHTML = list.map(p => { const u = map[p.receipt_path], pr = profiles[p.user_id] || {}; const pdf = /\.pdf$/i.test(p.receipt_path);
-        return `<div class="rc" data-id="${p.id}" data-u="${p.user_id}"><div class="img">${u ? (pdf ? `<a href="${u}" target="_blank" rel="noopener">فتح ملف PDF</a>` : `<img src="${u}" alt="إيصال" loading="lazy">`) : '<span class="note">الملف غير متاح</span>'}</div>
+        return `<div class="rc" data-id="${p.id}" data-u="${p.user_id}"><div class="img">${u ? (pdf ? `<div class="pdfv" data-pdf="${u}"><span class="note">جارٍ عرض الـ PDF…</span></div><a class="pdfo" href="${u}" target="_blank" rel="noopener">PDF ↗</a>` : `<img src="${u}" alt="إيصال" loading="lazy">`) : '<span class="note">الملف غير متاح</span>'}</div>
           <div class="meta"><div style="display:flex;justify-content:space-between;gap:8px"><b>${esc(p.sender_name || '—')}</b>${lbl[p.status]}</div><div class="em" data-who title="عرض تفاصيل العميل">${esc(pr.email || p.user_id)}</div><div class="note">${fmt(p.created_at)} · ${esc(p.amount ?? '')} ر.س${p.promo_code ? ' · كود <b dir="ltr">' + esc(p.promo_code) + '</b>' : ''}${p.reviewed_at ? ' · روجع ' + ago(p.reviewed_at) : ''}</div>${p.note ? `<div class="note">ملاحظة: ${esc(p.note)}</div>` : ''}</div>
           ${p.status === 'pending' ? `<div class="acts"><button class="btn pri sm" data-ok>قبول</button><button class="btn sm no" data-no>رفض وإيقاف الحساب</button></div>` : ''}</div>`; }).join('') || '<div class="empty" style="grid-column:1/-1">لا نتائج.</div>';
-      box.querySelectorAll('.rc img').forEach(i => i.onclick = () => { const lb = document.createElement('div'); lb.className = 'lb'; lb.innerHTML = `<img src="${i.src}" alt="إيصال">`; lb.onclick = () => lb.remove(); document.body.appendChild(lb); });
+      showPdfs(box);
+      box.querySelectorAll('.rc .img > img').forEach(i => i.onclick = () => { const lb = document.createElement('div'); lb.className = 'lb'; lb.innerHTML = `<img src="${i.src}" alt="إيصال">`; lb.onclick = () => lb.remove(); document.body.appendChild(lb); });
       box.querySelectorAll('.rc').forEach(card => {
         const id = +card.dataset.id, ok = card.querySelector('[data-ok]'), no = card.querySelector('[data-no]');
         card.querySelector('[data-who]').onclick = () => openUser(card.dataset.u);
@@ -314,7 +343,7 @@ table.t tbody tr:hover{background:#ffffff06}
       <h4>المحاكي (${det.sim.length})</h4>
       ${det.sim.length ? `<table class="mini"><tbody>${det.sim.map(s => `<tr><td>${esc(MN[s.m] || s.m)}</td><td class="num">${(+s.t).toFixed(1)}s</td><td class="muted">${ago(s.at)}</td></tr>`).join('')}</tbody></table>` : '<p class="muted">ما أنجز أي مهمة.</p>'}
       <h4>الإيصالات (${det.payments.length})</h4>
-      ${det.payments.length ? `<table class="mini"><tbody>${det.payments.map(y => `<tr><td>${stl[y.status] || ''}</td><td>${esc(y.sender || '—')}</td><td class="num">${esc(y.amount ?? '')} ر.س</td><td class="muted">${fmtD(y.at)}</td><td>${um[y.path] ? `<a href="${um[y.path]}" target="_blank" rel="noopener" style="color:var(--sand)">عرض</a>` : ''}</td></tr>`).join('')}</tbody></table>` : '<p class="muted">ما رفع أي إيصال.</p>'}`;
+      ${det.payments.length ? `<table class="mini"><tbody>${det.payments.map(y => `<tr><td>${stl[y.status] || ''}</td><td>${esc(y.sender || '—')}</td><td class="num">${esc(y.amount ?? '')} ر.س</td><td class="muted">${fmtD(y.at)}</td><td>${um[y.path] ? `<a href="${um[y.path]}" data-view="${/\.pdf$/i.test(y.path) ? 'pdf' : 'img'}" target="_blank" rel="noopener" style="color:var(--sand)">عرض</a>` : ''}</td></tr>`).join('')}</tbody></table>` : '<p class="muted">ما رفع أي إيصال.</p>'}`;
     d.querySelector('#d-x').onclick = close;
     d.querySelector('#d-em').onclick = () => copy(p.email || '');
     d.querySelector('.acts2').onclick = async e => { const b = e.target.closest('[data-a]'); if(!b) return; const a = b.dataset.a;

@@ -437,9 +437,10 @@ table.t tbody tr:hover{background:#ffffff06}
         <label class="field">كود الخصم في الإيميل<select name="code"><option value="">بدون كود</option>${live.map(c => `<option value="${esc(c.code)}">${esc(c.code)} · ${esc(c.price)} ريال</option>`).join('')}</select></label>
         <label class="field">عدد الدفعة (حد أقصى ١٠٠)<input name="n" dir="ltr" inputmode="numeric" value="90"></label>
       </form>
-      <div class="row" style="margin-top:12px;gap:8px;flex-wrap:wrap"><button class="btn" id="em-test">أرسل تجربة لإيميلي</button><button class="btn pri" id="em-go">أرسل الدفعة</button></div>
+      <div class="row" style="margin-top:12px;gap:8px;flex-wrap:wrap"><button class="btn" id="em-test">أرسل تجربة لإيميلي</button><button class="btn" id="em-go">أرسل الدفعة</button><button class="btn pri" id="em-all">أرسل للكل</button></div>
+      <div id="em-prog" hidden style="margin-top:12px"><div style="height:8px;border-radius:8px;background:var(--line);overflow:hidden"><i id="em-bar" style="display:block;height:100%;width:0;background:var(--sand);transition:width .3s"></i></div><p class="note" id="em-pt" style="margin:6px 0 0"></p></div>
       <p class="note" id="em-msg" style="margin-bottom:0"></p>
-      <p class="note">خطة Resend المجانية تسمح بـ ١٠٠ إيميل في اليوم و٣٠٠٠ في الشهر، فأرسل دفعة وحدة كل يوم، أو رقّ الخطة لو تبي ترسل للكل مرة وحدة. ولو تبي تعيد الإرسال لنفس الناس، غيّر اسم الحملة.</p>
+      <p class="note">«أرسل للكل» يرسل دفعات ١٠٠ ورا بعض لين يخلص (خطة Resend Pro: ٥٠ ألف إيميل في الشهر). خلّ الصفحة مفتوحة لين يخلص، ولو قفلتها تقدر تكمّل بعدين من نفس المكان. ولو تبي تعيد الإرسال لنفس الناس، غيّر اسم الحملة.</p>
     </div>`;
     const f = $('#em-f'), msg = $('#em-msg');
     if(!live.length) msg.innerHTML = 'ما عندك كود خصم شغّال. تقدر تسوي واحد من تبويب «بيانات التحويل»، أو ترسل بدون كود.';
@@ -447,7 +448,23 @@ table.t tbody tr:hover{background:#ffffff06}
       const { data, error } = await sb.rpc('admin_promo_stats', { p_campaign: camp });
       if(error){ $('#em-k').innerHTML = `<div style="grid-column:1/-1"><span>${/admin_promo_stats/.test(error.message) ? 'شغّل ملف supabase/promo-email.sql في Supabase أول.' : esc(error.message)}</span></div>`; return; }
       $('#em-k').innerHTML = [[data.remaining,'باقي ينرسل لهم'],[data.sent,'انرسل في الحملة'],[data.sent_today,'انرسل آخر ٢٤ ساعة'],[data.activated_after,'فعّلوا بعد الإيميل'],[data.unsubscribed,'ألغوا الاشتراك']].map(([v, l]) => `<div><b>${n(v)}</b><span>${l}</span></div>`).join('');
-      $('#em-go').textContent = `أرسل الدفعة (${n(Math.min(data.remaining, Math.max(1, Math.min(100, +f.n.value || 90))))})`; };
+      $('#em-go').textContent = `أرسل الدفعة (${n(Math.min(data.remaining, Math.max(1, Math.min(100, +f.n.value || 90))))})`;
+      if(!allRun) $('#em-all').textContent = `أرسل للكل (${n(data.remaining)})`; em = data; };
+    let allRun = false, em = null;
+    $('#em-all').onclick = async e => { const b = e.currentTarget;
+      if(allRun){ allRun = false; b.textContent = 'جارٍ الإيقاف…'; return; }
+      if(!em || !em.remaining) return toast('ما فيه أحد باقي في هذي الحملة', 1);
+      if(!b.dataset.sure){ b.dataset.sure = 1; b.textContent = `متأكد؟ بيروح ${n(em.remaining)} إيميل`; setTimeout(() => { if(!allRun){ delete b.dataset.sure; stats(); } }, 5000); return; }
+      delete b.dataset.sure; allRun = true; b.textContent = 'إيقاف'; $('#em-go').disabled = $('#em-test').disabled = true;
+      const total = em.remaining; let sent = 0; $('#em-prog').hidden = false;
+      while(allRun){
+        const { data, error } = await sb.rpc('admin_promo_send', { p_campaign: f.camp.value.trim() || 'promo-1', p_limit: 100, p_code: f.code.value || null, p_test: false });
+        if(error){ toast(/bad code/.test(error.message) ? 'الكود منتهي أو موقوف' : error.message, 1); break; }
+        if(!data) break; sent += data;
+        $('#em-bar').style.width = Math.min(100, sent / total * 100) + '%'; $('#em-pt').textContent = `انرسل ${n(sent)} من ${n(total)}`;
+        await new Promise(r => setTimeout(r, 1500));
+      }
+      allRun = false; $('#em-go').disabled = $('#em-test').disabled = false; msg.textContent = `خلص: انرسل ${n(sent)} إيميل.`; toast('خلص الإرسال'); stats(); };
     f.camp.onchange = stats; f.n.oninput = stats;
     const send = async (test, btn) => {
       const lim = Math.max(1, Math.min(100, Math.floor(+f.n.value || 90)));

@@ -114,6 +114,12 @@ html,body{margin:0;height:100%;background:#050806;overflow:hidden}
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>window.$=s=>document.querySelector(s);window.$$=s=>[...document.querySelectorAll(s)];window.AR=n=>String(n).replace(/\d/g,d=>'٠١٢٣٤٥٦٧٨٩'[d]);window.toast=()=>{};</script>
+<script>
+// stream audio: quieter, softer drone (?dv=0..100 drone volume, ?mv=0..100 music volume)
+(function(){const q=new URLSearchParams(location.search),n=(k,d)=>{const v=q.get(k);return v==null||isNaN(+v)?d:Math.max(0,Math.min(100,+v))/100};
+ window.KU_DV=n('dv',.2);window.KU_MV=n('mv',.35);window.KU_SOFT_SND=true;
+ try{localStorage.setItem('ku_sim_snd',JSON.stringify({on:window.KU_DV>0,vol:window.KU_DV}))}catch(e){}})();
+</script>
 <script src="/assets/sim.js"></script>
 <script>
 (function(){
@@ -141,8 +147,42 @@ html,body{margin:0;height:100%;background:#050806;overflow:hidden}
   function onEv(e){
     if(e.type === 'done' || e.type === 'crash'){ const ok = e.type === 'done'; done.textContent = ok ? 'أُنجزت: ' + (e.mission && e.mission.title || '') : 'تحطّمت · نعيد المحاولة'; done.classList.toggle('bad', !ok); done.classList.add('on'); setTimeout(() => done.classList.remove('on'), 2600); }
   }
+  // light generative background music (Web Audio, no files): soft pad + bass + bell arpeggio, 76 bpm
+  function music(vol){
+    if(!vol) return; const AC = window.AudioContext || window.webkitAudioContext; if(!AC) return;
+    const c = new AC(), out = c.createGain(); out.gain.value = 0; out.gain.setTargetAtTime(vol, c.currentTime + .5, 3);
+    const comp = c.createDynamicsCompressor(); comp.threshold.value = -20; comp.ratio.value = 3; out.connect(comp); comp.connect(c.destination);
+    // simple reverb from a decaying noise impulse
+    const rv = c.createConvolver(), len = c.sampleRate * 3, ib = c.createBuffer(2, len, c.sampleRate);
+    for(let ch = 0; ch < 2; ch++){ const d = ib.getChannelData(ch); for(let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3); }
+    rv.buffer = ib; const wet = c.createGain(); wet.gain.value = .45; rv.connect(wet); wet.connect(out);
+    const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1500; lp.connect(out); lp.connect(rv);
+    const hz = m => 440 * Math.pow(2, (m - 69) / 12);
+    // Fmaj7 - Em7 - Dm7 - Cmaj7 (calm, loops forever)
+    const CH = [[53,57,60,64],[52,55,59,62],[50,53,57,60],[48,52,55,59]];
+    const beat = 60 / 76, bar = beat * 4, chordLen = bar * 2;
+    function note(f, t, dur, type, v, att, dest){
+      const o = c.createOscillator(), g = c.createGain(); o.type = type; o.frequency.value = f;
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(v, t + att); g.gain.setTargetAtTime(0, t + dur - att * .5, att * .6);
+      o.connect(g); g.connect(dest || lp); o.start(t); o.stop(t + dur + att * 3);
+    }
+    let next = c.currentTime + .3, idx = 0;
+    function sched(){
+      while(next < c.currentTime + chordLen * 1.5){
+        const ch = CH[idx % CH.length], t = next;
+        ch.forEach(m => { note(hz(m), t, chordLen, 'triangle', .035, 1.4); note(hz(m) * 1.004, t, chordLen, 'sine', .03, 1.6); });
+        note(hz(ch[0] - 12), t, bar * .95, 'sine', .09, .08); note(hz(ch[0] - 12), t + bar, bar * .95, 'sine', .08, .08);
+        const arp = [ch[0] + 12, ch[1] + 12, ch[2] + 12, ch[3] + 12, ch[2] + 12, ch[1] + 12];
+        for(let i = 0; i < 8; i++){ if(Math.random() < .35) continue; const m = arp[(i + idx) % arp.length]; note(hz(m), t + i * beat, beat * 1.6, 'sine', .028, .01); }
+        next += chordLen; idx++;
+      }
+    }
+    sched(); setInterval(sched, 1000);
+    const wake = () => { if(c.state === 'suspended') c.resume().catch(() => {}); };
+    wake(); addEventListener('pointerdown', wake); addEventListener('keydown', wake);
+  }
   let started = false;
-  function go(){ if(started) return; started = true; $('#go').hidden = true; Sim.enter(); Sim.autopilot(LIST, onEv); requestAnimationFrame(drawCtl); }
+  function go(){ if(started) return; started = true; $('#go').hidden = true; Sim.enter(); Sim.autopilot(LIST, onEv); music(window.KU_MV); requestAnimationFrame(drawCtl); }
   $('#go-b').onclick = go; setTimeout(go, 5000);
   // keep the stream clean: no menus or pop-ups from the trainer
   new MutationObserver(() => { const o = $('#over'); if(o && !o.hidden && /جاهز تطير|🔒/.test(o.textContent)) o.hidden = true; }).observe($('#over'), {attributes:true, childList:true, subtree:true});

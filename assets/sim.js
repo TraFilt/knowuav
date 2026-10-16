@@ -475,7 +475,7 @@ window.Sim=(()=>{
   if(AU.pan)T(AU.pan.pan,pan*.8,.06);T(AU.bus.gain,att,.06);
   AU.m.forEach((m,i)=>{const [sx,sz]=mix[i];const load=Math.max(0,h*(1+.22*(p*sz-r*sx+y*sx*sz)));const f=115+190*Math.sqrt(load)+m.dt;
    T(m.o.frequency,f,.03);T(m.o2.frequency,f*2.01,.03);T(m.g.gain,live?.075+.06*Math.min(2,Math.sqrt(load)):0,.04)});
-  T(AU.lp.frequency,1400+1500*Math.min(2.2,Math.sqrt(h)),.05);
+  T(AU.lp.frequency,(window.KU_SOFT_SND?.45:1)*(1400+1500*Math.min(2.2,Math.sqrt(h))),.05);
   const sp=S.vel?S.vel.length():0;
   T(AU.wash.g.gain,live?Math.min(.22,.03+.05*h):0,.06);T(AU.wash.f.frequency,650+380*Math.sqrt(h),.06);
   T(AU.wind.g.gain,S.state==='fly'&&!S.onGround?Math.min(.32,sp*.016):0,.12);T(AU.wind.f.frequency,250+sp*45,.12);

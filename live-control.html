@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Know UAV · التحكم بالبث</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="/assets/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@500;700&family=Readex+Pro:wght@300;400;600&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="/assets/base.css">
+<style>
+main{padding-block:20px 80px}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:20px;align-items:start}
+@media(max-width:860px){.grid{grid-template-columns:1fr}.pv{order:-1}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px}
+.card h2{font-size:17px;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.card h2 small{font-family:var(--f-body);font-weight:300;font-size:13px;color:var(--faint)}
+.scenes{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+@media(max-width:480px){.scenes{grid-template-columns:repeat(2,1fr)}}
+.sc{font:inherit;background:var(--panel2);border:2px solid var(--line2);color:var(--text);border-radius:14px;padding:14px 8px;cursor:pointer;display:grid;gap:2px;text-align:center}
+.sc b{font-weight:600;font-size:15px}.sc span{font-size:12px;color:var(--muted)}
+.sc.on{border-color:var(--signal);background:#2a1a0e}
+.f{display:grid;gap:6px;margin-bottom:10px}
+.f label{font-size:13px;color:var(--muted)}
+.f input[type=text],.f select,.f textarea{font:inherit;background:var(--ground);color:var(--text);border:1px solid var(--line2);border-radius:10px;padding:10px 12px;width:100%;box-sizing:border-box}
+.f textarea{min-height:64px;resize:vertical}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.chips button{font:inherit;font-size:13px;background:var(--panel2);border:1px solid var(--line2);color:var(--text);border-radius:999px;padding:6px 12px;cursor:pointer}
+.rng{display:grid;grid-template-columns:110px 1fr 44px;gap:10px;align-items:center;margin-bottom:8px;font-size:14px}
+.rng input{width:100%;accent-color:var(--sand)}
+.rng output{font-family:var(--f-mono);text-align:center;color:var(--sand)}
+.sw{display:flex;align-items:center;gap:10px;font-size:14px;cursor:pointer}
+.sw input{width:18px;height:18px;accent-color:var(--sand)}
+.pv .frame{position:relative;width:100%;aspect-ratio:9/16;border-radius:16px;overflow:hidden;border:1px solid var(--line2);background:#000}
+.pv iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.pv{position:sticky;top:80px}
+.st{font-size:13px;color:var(--faint);margin-top:8px}
+.st.ok{color:var(--ok)}.st.bad{color:var(--bad)}
+.empty{padding:60px 0;text-align:center;color:var(--muted)}
+</style>
+</head>
+<body>
+<header class="bar"><div class="wrap"><a class="brand" href="/"><img src="/assets/logo.png" alt="Know UAV" width="64" height="30"></a><nav class="nav"><a href="/admin">لوحة الأدمن</a><a href="/live" target="_blank" rel="noopener">صفحة البث ↗</a></nav></div></header>
+<main class="wrap">
+  <div id="gate" class="empty">جارٍ التحقق…</div>
+  <div id="panel" hidden>
+    <h1 style="font-size:24px;margin-bottom:16px">التحكم بالبث</h1>
+    <div class="grid">
+      <div>
+        <div class="card">
+          <h2>المشهد <small>يتغيّر في البث خلال ثانيتين</small></h2>
+          <div class="scenes" id="scenes">
+            <button class="sc" data-s="sim"><b>المحاكي</b><span>الدرون يطير المهام</span></button>
+            <button class="sc" data-s="offer"><b>السعر والتفعيل</b><span>بطاقة السعر والمميزات</span></button>
+            <button class="sc" data-s="start"><b>البداية</b><span>البث بيبدأ بعد شوي</span></button>
+            <button class="sc" data-s="brb"><b>استراحة</b><span>نرجع لكم بعد شوي</span></button>
+            <button class="sc" data-s="msg"><b>رسالة</b><span>نص تكتبه أنت</span></button>
+            <button class="sc" data-s="end"><b>الختام</b><span>شكراً لكم</span></button>
+          </div>
+          <div class="st" id="save-st"></div>
+        </div>
+
+        <div class="card">
+          <h2>تنبيه سريع <small>يطلع فوق المحاكي ٨ ثواني بدون ما يتغير المشهد</small></h2>
+          <div class="f"><input type="text" id="al-t" maxlength="90" placeholder="مثلاً: حيّاك الله يا أبو فهد"></div>
+          <div class="row"><button class="btn pri sm" id="al-go">أرسل التنبيه</button></div>
+          <div class="chips" id="al-q">
+            <button>حيّاكم الله في البث</button><button>الرابط في البايو</button><button>شكراً على المتابعة</button><button>اكتب في التعليقات وش المهمة الجاية</button><button>تقدر تجرب المحاكي مجاناً من الموقع</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>نص المشاهد</h2>
+          <div class="row2">
+            <div class="f"><label>رسالة: العنوان</label><input type="text" id="msgTitle" maxlength="40" placeholder="مرحباً بكم"></div>
+            <div class="f"><label>رسالة: النص</label><input type="text" id="msgSub" maxlength="120" placeholder="اسأل أي سؤال عن الدرونات"></div>
+          </div>
+          <div class="row2">
+            <div class="f"><label>البداية: العنوان</label><input type="text" id="startTitle" maxlength="40" placeholder="البث بيبدأ بعد شوي"></div>
+            <div class="f"><label>البداية: عدّاد (دقائق)</label><select id="startMin"><option value="0">بدون عدّاد</option><option>1</option><option>2</option><option>3</option><option>5</option><option>10</option><option>15</option></select></div>
+          </div>
+          <div class="row2">
+            <div class="f"><label>استراحة: العنوان</label><input type="text" id="brbTitle" maxlength="40" placeholder="استراحة قصيرة"></div>
+            <div class="f"><label>استراحة: النص</label><input type="text" id="brbSub" maxlength="120" placeholder="نرجع لكم بعد شوي، خلّك معنا"></div>
+          </div>
+          <div class="f"><label>السطر تحت الشعار (فاضي = السعر والدروس تلقائياً)</label><input type="text" id="cap" maxlength="70" placeholder="٢٥ ريال مدى الحياة — ٢٠ درس + ١٤ مهمة محاكاة"></div>
+          <label class="sw"><input type="checkbox" id="bio" checked> إظهار «رابط الموقع في البايو»</label>
+          <div class="row" style="margin-top:12px"><button class="btn pri sm" id="txt-save">حفظ النصوص</button></div>
+        </div>
+
+        <div class="card">
+          <h2>الطيران</h2>
+          <div class="row2">
+            <div class="f"><label>المهمة</label><select id="mission"></select></div>
+            <div class="f"><label>الكاميرا</label><select id="cam">
+              <option value="auto">تلقائي (تتبدل كل ١٣ ث)</option><option value="chase">ملاحقة</option><option value="fpv">FPV</option><option value="gimbal">كاميرا التصوير</option><option value="pilot">من مكان الطيار</option>
+            </select></div>
+          </div>
+          <div class="row"><button class="btn sm" id="m-go">شغّل المهمة الحين</button></div>
+        </div>
+
+        <div class="card">
+          <h2>الصوت</h2>
+          <div class="rng"><span>صوت الدرون</span><input type="range" id="dv" min="0" max="100" step="5"><output id="dv-o"></output></div>
+          <div class="rng"><span>الموسيقى</span><input type="range" id="mv" min="0" max="100" step="5"><output id="mv-o"></output></div>
+        </div>
+      </div>
+
+      <div class="pv">
+        <div class="card" style="padding:10px">
+          <div class="frame"><iframe src="/live?preview=1" title="معاينة البث" loading="lazy"></iframe></div>
+          <p class="st">معاينة بدون صوت. البث نفسه افتحه من <a href="/live" target="_blank" rel="noopener">knowuav.com/live</a> في برنامج البث.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="/assets/config.js"></script>
+<script src="/assets/common.js"></script>
+<script>
+(async function(){
+  const MISS = [['hover','الإقلاع والتحويم'],['box','المربع'],['gates','البوابات'],['slalom','التعرّج بين الأعمدة'],['orbit','الدوران حول البرج'],['land','الهبوط الدقيق'],['hangar','المبنى الكبير'],['wind','تحويم مع رياح'],['pads','الهبوط على ثلاث منصات'],['night','البوابات الليلية'],['low','الممر المنخفض'],['rth','العودة ببطارية منخفضة']];
+  const { data: { session } } = await sb.auth.getSession();
+  if(!session){ $('#gate').innerHTML = 'سجّل دخولك أولاً من <a href="/app#login">صفحة الدخول</a>.'; return; }
+  const { data: me } = await sb.from('profiles').select('is_admin').eq('id', session.user.id).maybeSingle();
+  if(!me || !me.is_admin){ $('#gate').textContent = 'هذه الصفحة للمسؤول فقط.'; return; }
+  $('#gate').hidden = true; $('#panel').hidden = false;
+
+  $('#mission').innerHTML = MISS.map(([id, t]) => `<option value="${id}">${t}</option>`).join('');
+  let ST = {};
+  try{ const { data } = await sb.from('app_settings').select('value').eq('key', 'live_state').maybeSingle(); ST = JSON.parse((data && data.value) || '{}'); }catch(e){ ST = {}; }
+  const def = { scene:'sim', bio:true, cam:'auto', dv:.2, mv:.35 };
+  ST = Object.assign({}, def, ST);
+
+  const stEl = $('#save-st');
+  async function save(patch, msg){
+    Object.assign(ST, patch);
+    stEl.className = 'st'; stEl.textContent = 'جارٍ الحفظ…';
+    const { error } = await sb.from('app_settings').upsert({ key:'live_state', value: JSON.stringify(ST) });
+    if(error){ stEl.className = 'st bad'; stEl.textContent = 'ما انحفظ: ' + error.message; return; }
+    stEl.className = 'st ok'; stEl.textContent = (msg || 'تم') + ' · ' + new Date().toLocaleTimeString('ar-SA-u-nu-latn', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+  }
+
+  // fill the form
+  const paintScenes = () => $$('#scenes .sc').forEach(b => b.classList.toggle('on', b.dataset.s === ST.scene));
+  paintScenes();
+  ['msgTitle','msgSub','startTitle','brbTitle','brbSub','cap'].forEach(k => $('#' + k).value = ST[k] || '');
+  $('#bio').checked = ST.bio !== false;
+  $('#cam').value = ST.cam || 'auto';
+  if(ST.mission) $('#mission').value = ST.mission;
+  const pct = v => Math.round((v == null ? 0 : v) * 100);
+  ['dv','mv'].forEach(k => { $('#' + k).value = pct(ST[k]); $('#' + k + '-o').textContent = pct(ST[k]); });
+
+  $('#scenes').onclick = e => { const b = e.target.closest('.sc'); if(!b) return;
+    const patch = { scene: b.dataset.s };
+    if(b.dataset.s === 'start'){ const m = +$('#startMin').value; patch.startAt = m ? new Date(Date.now() + m * 60000).toISOString() : null; patch.startTitle = $('#startTitle').value.trim(); }
+    if(b.dataset.s === 'msg'){ patch.msgTitle = $('#msgTitle').value.trim(); patch.msgSub = $('#msgSub').value.trim(); }
+    ST.scene = b.dataset.s; paintScenes(); save(patch, 'تغيّر المشهد'); };
+
+  const sendAlert = t => { t = (t || '').trim(); if(!t) return; save({ alert: { t, n: Date.now(), s: 8 } }, 'انرسل التنبيه'); };
+  $('#al-go').onclick = () => { sendAlert($('#al-t').value); $('#al-t').value = ''; };
+  $('#al-t').onkeydown = e => { if(e.key === 'Enter'){ e.preventDefault(); $('#al-go').click(); } };
+  $('#al-q').onclick = e => { if(e.target.tagName === 'BUTTON') sendAlert(e.target.textContent); };
+
+  $('#txt-save').onclick = () => save({ msgTitle: $('#msgTitle').value.trim(), msgSub: $('#msgSub').value.trim(), startTitle: $('#startTitle').value.trim(),
+    brbTitle: $('#brbTitle').value.trim(), brbSub: $('#brbSub').value.trim(), cap: $('#cap').value.trim(), bio: $('#bio').checked }, 'انحفظت النصوص');
+  $('#bio').onchange = () => save({ bio: $('#bio').checked });
+
+  $('#m-go').onclick = () => save({ mission: $('#mission').value, mn: Date.now() }, 'بدأت المهمة');
+  $('#cam').onchange = () => save({ cam: $('#cam').value }, 'تغيّرت الكاميرا');
+
+  let vt = 0;
+  ['dv','mv'].forEach(k => $('#' + k).oninput = e => { $('#' + k + '-o').textContent = e.target.value; clearTimeout(vt);
+    vt = setTimeout(() => save({ [k]: +e.target.value / 100 }, 'تغيّر الصوت'), 400); });
+})();
+</script>
+</body>
+</html>

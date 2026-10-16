@@ -572,7 +572,7 @@ window.Sim=(()=>{
   else IN.thr=clp((T.y-p.y)*.9-v.y*.25);
   const d3=wp.land?dh:p.distanceTo(T),there=wp.land?(S.onGround&&dh<.6):d3<wp.r;
   if(there){A.hold+=dt;if(!wp.hold||A.hold>=wp.hold){A.i++;A.hold=0}}else if(!wp.land)A.hold=0;
-  A.camT+=dt;if(A.camT>A.camEvery){A.camT=0;const cs=MAP==='hangar'?['chase','fpv','chase','gimbal']:['chase','fpv','chase','gimbal','chase'];A.ci=(A.ci+1)%cs.length;setCam(cs[A.ci])}}
+  A.camT+=dt;if(!A.fixCam&&A.camT>A.camEvery){A.camT=0;const cs=MAP==='hangar'?['chase','fpv','chase','gimbal']:['chase','fpv','chase','gimbal','chase'];A.ci=(A.ci+1)%cs.length;setCam(cs[A.ci])}}
  function apStart(m){if(!AP)return;AP.plan=apPlan(m);AP.i=0;AP.fin=0;AP.hold=0;AP.armT=0;AP.yd=S.yaw;AP.camT=0;try{AP.on&&AP.on({type:'mission',mission:m})}catch(e){}}
  function apNext(ok){if(!AP)return;try{AP.on&&AP.on({type:ok?'done':'crash',mission})}catch(e){}
   clearTimeout(AP.t);AP.t=setTimeout(()=>{if(!AP)return;AP.k=(AP.k+(ok?1:1))%AP.list.length;$('#over').hidden=true;start(MISSIONS.find(x=>x.id===AP.list[AP.k]))},ok?3200:2600)}
@@ -616,6 +616,10 @@ window.Sim=(()=>{
   $('#o-pay').onclick=()=>exitFull();$('#o-cl').onclick=()=>{$('#over').hidden=true}}
  return{
   autopilot(list,on){AP={list,k:0,on,camEvery:13,camT:0,ci:0,i:0,hold:0,armT:0,yd:0,plan:[]};opt.level=1;TU.dz=8;introShown=true;$('#over').hidden=true;start(MISSIONS.find(x=>x.id===list[0]));setCam('chase')},
+  apGoto(id){if(!AP)return;const k=AP.list.indexOf(id),m=MISSIONS.find(x=>x.id===id);if(!m)return;if(k>=0)AP.k=k;clearTimeout(AP.t);$('#over').hidden=true;start(m)},
+  apCam(c){if(!AP)return;if(!c||c==='auto'){AP.fixCam=null;AP.camT=0}else{AP.fixCam=c;setCam(c)}},
+  setVol(v){AU.vol=Math.max(0,Math.min(1,+v||0));AU.on=AU.vol>0;auSave()},
+  get missions(){return MISSIONS.map(m=>({id:m.id,title:m.title}))},
   get input(){return IN},get state(){return {alt:S.pos?S.pos.y:0,spd:S.vel?Math.hypot(S.vel.x,S.vel.z):0,bat:S.bat,armed:S.armed,mission:mission&&mission.id,t:S.t}},
   setLocked(v){locked=!!v;if(inited){renderMissions();if(isLocked(mission))start(MISSIONS[1])}},
   enter(){if(!ok){$('#simbay').innerHTML='<div class="over"><div class="box"><h3>تعذّر تحميل المحاكي</h3><p>تحقق من اتصالك بالإنترنت ثم أعد تحميل الصفحة.</p></div></div>';return}

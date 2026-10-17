@@ -251,7 +251,7 @@ function lessonState(l){
 }
 function statusCard(){
   const pr = S.profile;
-  if(pr.blocked) return `<div class="card status blocked"><div><h2>تم إيقاف حسابك</h2><p>تم إيقاف الحساب بسبب مشكلة في إيصال التحويل. تواصل معنا لحل المشكلة.</p></div><a class="btn" href="https://wa.me/${K.WHATSAPP}" target="_blank" rel="noopener">تواصل عبر واتساب</a></div>`;
+  if(pr.blocked) return `<div class="card status blocked"><div><h2>تم إيقاف حسابك</h2><p>تم إيقاف الحساب بسبب مشكلة في إيصال التحويل. تواصل معنا لحل المشكلة.</p></div><a class="btn" href="mailto:${K.EMAIL}">راسلنا بالإيميل</a></div>`;
   if(access()){
     const done = S.catalog.filter(l => lessonState(l) === 'done').length, n = S.catalog.length || 1;
     return `<div class="card status"><div><div class="eyebrow">حسابك مفعّل</div><h2>أهلاً ${esc((pr.full_name||'').split(' ')[0] || '')}</h2><p>كل الدروس والاختبارات والمحاكي مفتوحة لك.</p></div>
@@ -431,7 +431,7 @@ function vPay(){
       <div class="promo" id="promo"><button type="button" class="promo-t" id="promo-t">عندك كود خصم؟</button>
         <div class="promo-f" id="promo-f" hidden><input id="promo-in" dir="ltr" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="30" placeholder="CODE"><button type="button" class="btn sm" id="promo-go">تطبيق</button></div>
         <div class="promo-m" id="promo-m"></div></div>
-      ${rows.length ? rows.map(([k,v]) => `<div class="kv"><span>${k}</span><b>${esc(v)}</b>${copyBtn(v)}</div>`).join('') : `<p style="color:var(--muted)">بيانات التحويل تُضاف قريباً. تواصل معنا على واتساب <b class="mono" dir="ltr">${K.WHATSAPP_DISPLAY}</b> وسنرسلها لك فوراً.</p>`}
+      ${rows.length ? rows.map(([k,v]) => `<div class="kv"><span>${k}</span><b>${esc(v)}</b>${copyBtn(v)}</div>`).join('') : `<p style="color:var(--muted)">بيانات التحويل تُضاف قريباً. راسلنا على <b class="mono" dir="ltr">${K.EMAIL}</b> وسنرسلها لك فوراً.</p>`}
       ${st.pay_note ? `<p class="note">${esc(st.pay_note)}</p>` : ''}
     </div>
     <form class="card" id="pay-form" style="display:grid;gap:14px" novalidate>
@@ -515,7 +515,7 @@ async function vAccount(){
       </div>
       <div class="card"><h3 style="font-size:18px;margin-bottom:8px">المدفوعات</h3>
         ${(pays && pays.length) ? `<div class="tbl-wrap"><table class="hist"><tr><th>التاريخ</th><th>المبلغ</th><th>الحالة</th></tr>${pays.map(p => `<tr><td>${fmtDate(p.created_at)}</td><td class="mono">${AR(p.amount ?? '')} ر.س</td><td>${stLbl[p.status]||''}</td></tr>`).join('')}</table></div>` : '<p class="note">لا توجد مدفوعات بعد.</p>'}
-        <p class="note" style="margin-top:12px">للدعم: واتساب <span class="mono" dir="ltr">${K.WHATSAPP_DISPLAY}</span> · <span class="mono" dir="ltr">${K.EMAIL}</span></p>
+        <p class="note" style="margin-top:12px">للدعم: <span class="mono" dir="ltr">${K.EMAIL}</span></p>
       </div>
     </div>`;
   $('#logout').onclick = async () => { await sb.auth.signOut(); location.href = '/'; };

@@ -408,3 +408,31 @@ body.sim-noscroll{overflow:hidden;overscroll-behavior:none}
 .wel-opt b{display:block;font-weight:600}
 .wel-opt small{color:var(--muted);font-size:13px}
 .wel-opt .wel-go{margin-inline-start:auto;color:var(--sand);font-size:18px}
+
+/* Tuwaiq practice */
+.tw{max-width:860px;margin:0 auto}
+.tw-hero{margin-bottom:18px}.tw-hero h1{font-size:clamp(24px,4vw,32px);margin:6px 0 8px}.tw-hero p{color:var(--muted)}
+.tw-facts{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.tw-facts span{background:var(--panel2);border:1px solid var(--line2);border-radius:999px;padding:5px 12px;font-size:13px}
+.tw-mock{display:flex;align-items:center;gap:14px;text-decoration:none;color:var(--text);border-color:var(--sand-dim);margin-bottom:14px}
+.tw-mock .ic{font-size:30px}.tw-mock p{margin:2px 0 0;color:var(--muted);font-size:14px}.tw-mock .go{margin-inline-start:auto;color:var(--sand);white-space:nowrap}
+.tw-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;margin-bottom:14px}
+.tw-sec{text-decoration:none;color:var(--text);display:grid;gap:4px}.tw-sec:hover,.tw-mock:hover{border-color:var(--sand)}
+.tw-sec .ic{font-size:26px}.tw-sec p{margin:0;color:var(--muted);font-size:13px}
+.tw-meta{display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:13px;color:var(--faint)}
+.tw-time{position:relative;height:8px;border-radius:8px;background:var(--line);margin:0 0 14px}
+.tw-time i{position:absolute;inset:0 0 0 auto;width:100%;border-radius:8px;background:var(--sand);transition:width .25s linear}
+.tw-time i.low{background:var(--signal)}
+.tw-time span{position:absolute;top:-22px;inset-inline-end:0;font-size:12px;color:var(--muted)}
+.tw-fb{margin-top:14px;padding:12px 14px;border-radius:12px;border:1px solid var(--line2);background:var(--panel2)}
+.tw-fb p{margin:6px 0 0;font-size:15px}.tw-fb.ok{border-color:var(--ok)}.tw-fb.ok b{color:var(--ok)}.tw-fb.bad{border-color:var(--bad)}.tw-fb.bad b{color:var(--bad)}
+.tw-fb .lbl{color:var(--sand);font-weight:600}
+.tw .opts button.pick{border-color:var(--sand);background:#d8bf8622}
+.tw-clock.low{color:var(--signal)}
+.tw-dots{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:12px}
+.tw-dots button{width:30px;height:30px;border-radius:8px;border:1px solid var(--line2);background:var(--panel);color:var(--muted);font:inherit;font-size:12px;cursor:pointer;padding:0}
+.tw-dots button.done{background:var(--panel2);color:var(--text);border-color:var(--sand-dim)}.tw-dots button.on{border-color:var(--sand);color:var(--sand);font-weight:600}
+.tw-res{text-align:center}.tw-res .score{font-size:44px}
+.tw-bars{display:grid;gap:8px;margin:14px auto;max-width:520px;text-align:start}
+.tw-bars>div{display:grid;grid-template-columns:150px 1fr 48px;gap:10px;align-items:center;font-size:14px}
+.tw-rh{margin:22px 0 10px;font-size:18px}.tw-rev{display:grid;gap:10px}.tw-rev .card p{margin:6px 0 0;font-size:14px}.tw-rev .w{color:var(--bad)}.tw-rev .r{color:var(--ok)}
+@media(max-width:520px){.tw-bars>div{grid-template-columns:110px 1fr 40px}.tw-dots button{width:26px;height:26px}}

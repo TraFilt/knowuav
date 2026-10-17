@@ -2,6 +2,8 @@
 window.KU = {
   SUPABASE_URL: 'https://tjkrscsesdsfhjosrirl.supabase.co',
   SUPABASE_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRqa3JzY3Nlc2RzZmhqb3NyaXJsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE4OTMzNjgsImV4cCI6MjEwNzQ2OTM2OH0.DICIsSoBhzZTSM5jreDdT92vvVgTI6mb3pi-D_ZNQhc',
+  WHATSAPP: '966534344581',
+  WHATSAPP_DISPLAY: '0534344581',
   EMAIL: 'info@knowuav.com',
   PRICE: 25,
   SELLER: 'طلال خيرات', FREELANCE_NO: 'FL-838044761', CITY: 'جازان',

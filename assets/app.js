@@ -135,7 +135,7 @@ function tuwaiqNote(){
   d.innerHTML = `<div class="wel-box"><button class="wel-x" aria-label="إغلاق">✕</button>
     <div class="wel-ic">🎯</div><h2>عندك اختبار قبول في الدرونات؟</h2>
     <p>جهّزنا لك تدريب مجاني على الأسئلة العامة في مجال الطائرات بدون طيار:</p>
-    <a class="wel-opt" href="#exam"><span class="i">📝</span><span><b>١٢٥ سؤال تدريبي في ٥ أقسام</b><small>كمي، مكاني، إنجليزي، أساسيات الدرون، تركيز · مع شرح الخطأ</small></span><span class="wel-go">←</span></a>
+    <a class="wel-opt" href="#exam"><span class="i">📝</span><span><b>تدريب على ٥ أقسام</b><small>١٠ أسئلة مجاناً من كل قسم · مع شرح الخطأ</small></span><span class="wel-go">←</span></a>
     <a class="wel-opt" href="#exam/mock"><span class="i">⏱️</span><span><b>اختبار تجريبي كامل</b><small>٦٠ سؤال في ٦٠ دقيقة مع نتيجة لكل قسم</small></span><span class="wel-go">←</span></a></div>`;
   d.onclick = e => { if(e.target === d || e.target.closest('.wel-x') || e.target.closest('.wel-opt')) d.remove(); };
   document.body.appendChild(d);
@@ -182,7 +182,7 @@ function route(){
   if(h === 'glossary') return vGlossary();
   if(h === 'sim' || h.startsWith('sim/')) return vSim(h.slice(4));
   if(h === 'tuwaiq' || h.startsWith('tuwaiq/')){ location.replace('#exam' + h.slice(6)); return; }
-  if(h === 'exam' || h.startsWith('exam/')){ show('exam'); return window.KUTuwaiq && KUTuwaiq.render($('#v-exam'), h.slice(5)); }
+  if(h === 'exam' || h.startsWith('exam/')){ show('exam'); return window.KUTuwaiq && KUTuwaiq.render($('#v-exam'), h.slice(5), { full: access(), price: priceHTML(S.settings) }); }
   vHome();
 }
 

@@ -16,6 +16,10 @@ function prep(q, sec){
 }
 
 let timer = 0;
+// free accounts: the first FREE questions of each section; the rest and the mock exam need an activated account
+const FREE = 10;
+let OPT = { full: false, price: '٢٥ ريال' };
+const lockCard = what => `<div class="card tw-lock"><div class="ic">🔒</div><div><b>${what}</b><p>فعّل حسابك بـ ${OPT.price} لمرة واحدة، وتنفتح لك كل الأسئلة والاختبار التجريبي، مع الدروس والمحاكي.</p></div><a class="btn pri" href="#pay">فعّل حسابك</a></div>`;
 const stop = () => { clearInterval(timer); timer = 0; };
 
 function home(el){
@@ -27,9 +31,10 @@ function home(el){
       <div class="tw-facts"><span>🔢 كمي ومنطق</span><span>🧭 مكاني</span><span>🔤 إنجليزي</span><span>🛩️ أساسيات الدرون</span><span>⚡ تركيز</span></div>
       <p class="note">أسئلة تدريبية من إعداد Know UAV على الأنواع الشائعة في اختبارات القبول والقدرات. وتذكّر: أغلب الاختبارات الرسمية تمنع أدوات الذكاء الاصطناعي وفتح تبويبات ثانية، فتدرّب هنا واعتمد على نفسك هناك.</p>
     </div>
-    <a class="card tw-mock" href="#exam/mock"><span class="ic">🎯</span><div><b>اختبار تجريبي كامل</b><p>٦٠ سؤال من كل الأقسام، ٦٠ دقيقة، والنتيجة مفصّلة لكل قسم${b.mock != null ? ` · أفضل نتيجة ${AR(b.mock)}٪` : ''}</p></div><span class="go">ابدأ ←</span></a>
+    ${OPT.full ? '' : `<div class="tw-free">🎁 مجاناً لك: <b>${AR(FREE)} أسئلة من كل قسم</b>. باقي الأسئلة والاختبار التجريبي للحسابات المفعّلة.</div>`}
+    <a class="card tw-mock ${OPT.full ? '' : 'locked'}" href="#exam/mock"><span class="ic">${OPT.full ? '🎯' : '🔒'}</span><div><b>اختبار تجريبي كامل</b><p>٦٠ سؤال من كل الأقسام، ٦٠ دقيقة، والنتيجة مفصّلة لكل قسم${b.mock != null ? ` · أفضل نتيجة ${AR(b.mock)}٪` : ''}</p></div><span class="tw-go">ابدأ ←</span></a>
     <div class="tw-grid">${S.map(s => `<a class="card tw-sec" href="#exam/${s.id}"><div class="ic">${s.icon}</div><b>${esc(s.title)}</b><p>${esc(s.blurb)}</p>
-      <div class="tw-meta"><span>${AR(s.qs.length)} سؤال</span>${b[s.id] != null ? `<span class="chip ${b[s.id] >= 80 ? 'ok' : b[s.id] >= 60 ? 'warn' : 'bad'}">أفضل ${AR(b[s.id])}٪</span>` : '<span class="chip">ابدأ</span>'}</div></a>`).join('')}</div>
+      <div class="tw-meta"><span>${OPT.full ? AR(s.qs.length) + ' سؤال' : AR(FREE) + ' مجاناً من ' + AR(s.qs.length)}</span>${b[s.id] != null ? `<span class="chip ${b[s.id] >= 80 ? 'ok' : b[s.id] >= 60 ? 'warn' : 'bad'}">أفضل ${AR(b[s.id])}٪</span>` : '<span class="chip tw-start">ابدأ</span>'}</div></a>`).join('')}</div>
     <p class="note" style="text-align:center">نصيحة: دقيقة لكل سؤال تقريباً. لو علقت في سؤال، تجاوزه وارجع له.</p>
   </div>`;
 }
@@ -37,7 +42,7 @@ function home(el){
 // section drill: one question at a time, 60 s each, instant feedback
 function drill(el, sec){
   stop();
-  const qs = shuffle(sec.qs).map(q => prep(q, sec.id));
+  const qs = shuffle(OPT.full ? sec.qs : sec.qs.slice(0, FREE)).map(q => prep(q, sec.id));
   let i = 0, score = 0; const wrong = [];
   const show = () => {
     stop();
@@ -71,6 +76,7 @@ function drill(el, sec){
     el.innerHTML = `<div class="tw"><div class="crumbs"><a href="#exam">تدريب الاختبارات</a> / ${esc(sec.title)}</div>
       <div class="qcard tw-res"><div class="score">${AR(score)}/${AR(qs.length)}</div><p>${pct >= 80 ? 'ممتاز، جاهز لهذا القسم 💪' : pct >= 60 ? 'زين، راجع أخطاءك تحت وأعد القسم.' : 'يحتاج مراجعة. اقرأ الشروحات تحت وأعد المحاولة.'}</p>
       <div class="row" style="justify-content:center"><button class="btn pri" data-again>أعد القسم</button><a class="btn" href="#exam">كل الأقسام</a></div></div>
+      ${OPT.full ? '' : lockCard(`باقي ${AR(sec.qs.length - FREE)} سؤال في «${esc(sec.title)}» والاختبار التجريبي`)}
       ${review(wrong)}</div>`;
     el.querySelector('[data-again]').onclick = () => drill(el, sec);
   };
@@ -80,7 +86,7 @@ function drill(el, sec){
 function review(list){
   if(!list.length) return '';
   return `<h3 class="tw-rh">راجع أخطاءك (${AR(list.length)})</h3><div class="tw-rev">${list.map(({ q, j }) => `<div class="card">
-    <b>${esc(q.q)}</b>
+    <b dir="auto">${esc(q.q)}</b>
     ${j >= 0 ? `<p class="w">✗ اخترت: ${esc(q.o[j])}${q.t[j] ? ` · ${esc(q.t[j])}` : ''}</p>` : '<p class="w">⏱️ ما جاوبت</p>'}
     <p class="r">✓ الصح: ${esc(q.o[q.a])}</p><p class="note">${esc(q.x)}</p></div>`).join('')}</div>`;
 }
@@ -88,6 +94,7 @@ function review(list){
 // full mock: 12 from each section, 60 minutes, answers editable until submit, results at the end
 function mock(el){
   stop();
+  if(!OPT.full){ el.innerHTML = `<div class="tw"><div class="crumbs"><a href="#exam">تدريب الاختبارات</a> / اختبار تجريبي</div>${lockCard('الاختبار التجريبي الكامل: ٦٠ سؤال في ساعة')}<p class="note" style="text-align:center">وتقدر الحين تحل ${AR(FREE)} أسئلة مجاناً من كل قسم: <a href="#exam">ارجع للأقسام</a></p></div>`; return; }
   const S = window.TW_SECTIONS;
   const qs = shuffle(S.flatMap(s => shuffle(s.qs).slice(0, 12).map(q => prep(q, s.id))));
   const ans = new Array(qs.length).fill(-1);
@@ -127,7 +134,8 @@ function mock(el){
 }
 
 window.KUTuwaiq = {
-  render(el, sub){
+  render(el, sub, opt){
+    OPT = Object.assign({ full: false, price: '٢٥ ريال' }, opt || {});
     const S = window.TW_SECTIONS || [];
     if(sub === 'mock') return mock(el);
     const sec = S.find(s => s.id === sub);

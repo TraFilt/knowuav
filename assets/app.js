@@ -128,15 +128,15 @@ async function squareImage(file, size = 256){
 // ---------------- Tuwaiq test announcement (shown once per user until the test is over) ----------------
 function tuwaiqNote(){
   if(!S.user || recovering || Date.now() > Date.parse('2026-10-19T00:00:00+03:00')) return false;
-  if((location.hash || '').startsWith('#tuwaiq')) return false;
+  if((location.hash || '').startsWith('#exam')) return false;
   const k = 'ku_tw_note_' + S.user.id;
   try { if(localStorage.getItem(k)) return false; localStorage.setItem(k, '1'); } catch(e){ return false; }
   const d = document.createElement('div'); d.className = 'wel'; d.setAttribute('role', 'dialog'); d.setAttribute('aria-modal', 'true');
   d.innerHTML = `<div class="wel-box"><button class="wel-x" aria-label="إغلاق">✕</button>
-    <div class="wel-ic">🎯</div><h2>اختبار طويق بكره!</h2>
-    <p>الاختبار النظري لمعسكر الدرونات يوم ١٨ أكتوبر: ٦٠ سؤال في ساعة. جهّزنا لك تدريب مجاني عليه:</p>
-    <a class="wel-opt" href="#tuwaiq"><span class="i">📝</span><span><b>١٢٥ سؤال تدريبي في ٥ أقسام</b><small>كمي، مكاني، إنجليزي، أساسيات الدرون، تركيز · مع شرح الخطأ</small></span><span class="wel-go">←</span></a>
-    <a class="wel-opt" href="#tuwaiq/mock"><span class="i">⏱️</span><span><b>اختبار تجريبي كامل</b><small>٦٠ سؤال في ٦٠ دقيقة، بنفس شكل الاختبار</small></span><span class="wel-go">←</span></a></div>`;
+    <div class="wel-ic">🎯</div><h2>عندك اختبار قبول في الدرونات؟</h2>
+    <p>جهّزنا لك تدريب مجاني على الأسئلة العامة في مجال الطائرات بدون طيار:</p>
+    <a class="wel-opt" href="#exam"><span class="i">📝</span><span><b>١٢٥ سؤال تدريبي في ٥ أقسام</b><small>كمي، مكاني، إنجليزي، أساسيات الدرون، تركيز · مع شرح الخطأ</small></span><span class="wel-go">←</span></a>
+    <a class="wel-opt" href="#exam/mock"><span class="i">⏱️</span><span><b>اختبار تجريبي كامل</b><small>٦٠ سؤال في ٦٠ دقيقة مع نتيجة لكل قسم</small></span><span class="wel-go">←</span></a></div>`;
   d.onclick = e => { if(e.target === d || e.target.closest('.wel-x') || e.target.closest('.wel-opt')) d.remove(); };
   document.body.appendChild(d);
   return true;
@@ -169,7 +169,7 @@ function show(v){
   if(v !== 'sim') window.Sim && Sim.leave();
   if(v !== 'lesson' && player){ player.destroy(); player = null; }
   if(v !== 'final') clearInterval(quizTimer);
-  if(v !== 'tuwaiq' && window.KUTuwaiq) KUTuwaiq.stop();
+  if(v !== 'exam' && window.KUTuwaiq) KUTuwaiq.stop();
   scrollTo(0, 0);
 }
 function route(){
@@ -181,7 +181,8 @@ function route(){
   if(h === 'account') return vAccount();
   if(h === 'glossary') return vGlossary();
   if(h === 'sim' || h.startsWith('sim/')) return vSim(h.slice(4));
-  if(h === 'tuwaiq' || h.startsWith('tuwaiq/')){ show('tuwaiq'); return window.KUTuwaiq && KUTuwaiq.render($('#v-tuwaiq'), h.slice(7)); }
+  if(h === 'tuwaiq' || h.startsWith('tuwaiq/')){ location.replace('#exam' + h.slice(6)); return; }
+  if(h === 'exam' || h.startsWith('exam/')){ show('exam'); return window.KUTuwaiq && KUTuwaiq.render($('#v-exam'), h.slice(5)); }
   vHome();
 }
 

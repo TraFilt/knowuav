@@ -22,13 +22,13 @@ function home(el){
   stop();
   const S = window.TW_SECTIONS, b = best(), total = S.reduce((n, s) => n + s.qs.length, 0);
   el.innerHTML = `<div class="tw">
-    <div class="tw-hero"><div class="eyebrow">تدريب مجاني</div><h1>تدرّب على اختبار طويق النظري</h1>
-      <p>${AR(total)} سؤال تدريبي في ٥ أقسام، مع شرح لكل إجابة وسبب الخطأ لو غلطت. وفي الآخر اختبار تجريبي بنفس شكل الاختبار: ٦٠ سؤال في ساعة.</p>
-      <div class="tw-facts"><span>📅 الاختبار النظري ١٨ أكتوبر</span><span>⏱️ ٦٠ سؤال في ساعة</span><span>🌐 عن بُعد، وبعض الأقسام بالإنجليزي</span><span>⚠️ بدون إعادة</span></div>
-      <p class="note">هذي أسئلة تدريبية من إعداد Know UAV حسب الأنواع المتوقعة، مو أسئلة الاختبار الحقيقي. وانتبه: الاختبار الحقيقي يمنع أدوات الذكاء الاصطناعي وفتح أي تبويب ثاني، فتدرّب الحين واعتمد على نفسك بكره.</p>
+    <div class="tw-hero"><div class="eyebrow">تدريب مجاني</div><h1>تدرّب على اختبارات القبول في مجال الدرونات</h1>
+      <p>${AR(total)} سؤال تدريبي في ٥ أقسام، مع شرح لكل إجابة وسبب الخطأ لو غلطت. وفي الآخر اختبار تجريبي: ٦٠ سؤال في ساعة.</p>
+      <div class="tw-facts"><span>🔢 كمي ومنطق</span><span>🧭 مكاني</span><span>🔤 إنجليزي</span><span>🛩️ أساسيات الدرون</span><span>⚡ تركيز</span></div>
+      <p class="note">أسئلة تدريبية من إعداد Know UAV على الأنواع الشائعة في اختبارات القبول والقدرات. وتذكّر: أغلب الاختبارات الرسمية تمنع أدوات الذكاء الاصطناعي وفتح تبويبات ثانية، فتدرّب هنا واعتمد على نفسك هناك.</p>
     </div>
-    <a class="card tw-mock" href="#tuwaiq/mock"><span class="ic">🎯</span><div><b>اختبار تجريبي كامل</b><p>٦٠ سؤال من كل الأقسام، ٦٠ دقيقة، والنتيجة مفصّلة لكل قسم${b.mock != null ? ` · أفضل نتيجة ${AR(b.mock)}٪` : ''}</p></div><span class="go">ابدأ ←</span></a>
-    <div class="tw-grid">${S.map(s => `<a class="card tw-sec" href="#tuwaiq/${s.id}"><div class="ic">${s.icon}</div><b>${esc(s.title)}</b><p>${esc(s.blurb)}</p>
+    <a class="card tw-mock" href="#exam/mock"><span class="ic">🎯</span><div><b>اختبار تجريبي كامل</b><p>٦٠ سؤال من كل الأقسام، ٦٠ دقيقة، والنتيجة مفصّلة لكل قسم${b.mock != null ? ` · أفضل نتيجة ${AR(b.mock)}٪` : ''}</p></div><span class="go">ابدأ ←</span></a>
+    <div class="tw-grid">${S.map(s => `<a class="card tw-sec" href="#exam/${s.id}"><div class="ic">${s.icon}</div><b>${esc(s.title)}</b><p>${esc(s.blurb)}</p>
       <div class="tw-meta"><span>${AR(s.qs.length)} سؤال</span>${b[s.id] != null ? `<span class="chip ${b[s.id] >= 80 ? 'ok' : b[s.id] >= 60 ? 'warn' : 'bad'}">أفضل ${AR(b[s.id])}٪</span>` : '<span class="chip">ابدأ</span>'}</div></a>`).join('')}</div>
     <p class="note" style="text-align:center">نصيحة: دقيقة لكل سؤال تقريباً. لو علقت في سؤال، تجاوزه وارجع له.</p>
   </div>`;
@@ -43,7 +43,7 @@ function drill(el, sec){
     stop();
     if(i >= qs.length) return end();
     const q = qs[i]; let left = 60, done = false;
-    el.innerHTML = `<div class="tw"><div class="crumbs"><a href="#tuwaiq">تدريب طويق</a> / ${esc(sec.title)}</div>
+    el.innerHTML = `<div class="tw"><div class="crumbs"><a href="#exam">تدريب الاختبارات</a> / ${esc(sec.title)}</div>
       <div class="quiz-h"><h2>${sec.icon} ${esc(sec.title)}</h2><span class="mono" style="color:var(--muted)">${AR(i + 1)}/${AR(qs.length)} · ✓ ${AR(score)}</span></div>
       <div class="tw-time"><i id="tw-bar"></i><span id="tw-t" class="mono">1:00</span></div>
       <div class="qcard"><h3 ${sec.id === 'english' ? 'dir="ltr" style="text-align:left"' : ''}>${esc(q.q)}</h3>
@@ -68,9 +68,9 @@ function drill(el, sec){
   const end = () => {
     stop();
     const pct = Math.round(score / qs.length * 100); saveBest(sec.id, pct);
-    el.innerHTML = `<div class="tw"><div class="crumbs"><a href="#tuwaiq">تدريب طويق</a> / ${esc(sec.title)}</div>
+    el.innerHTML = `<div class="tw"><div class="crumbs"><a href="#exam">تدريب الاختبارات</a> / ${esc(sec.title)}</div>
       <div class="qcard tw-res"><div class="score">${AR(score)}/${AR(qs.length)}</div><p>${pct >= 80 ? 'ممتاز، جاهز لهذا القسم 💪' : pct >= 60 ? 'زين، راجع أخطاءك تحت وأعد القسم.' : 'يحتاج مراجعة. اقرأ الشروحات تحت وأعد المحاولة.'}</p>
-      <div class="row" style="justify-content:center"><button class="btn pri" data-again>أعد القسم</button><a class="btn" href="#tuwaiq">كل الأقسام</a></div></div>
+      <div class="row" style="justify-content:center"><button class="btn pri" data-again>أعد القسم</button><a class="btn" href="#exam">كل الأقسام</a></div></div>
       ${review(wrong)}</div>`;
     el.querySelector('[data-again]').onclick = () => drill(el, sec);
   };
@@ -94,7 +94,7 @@ function mock(el){
   let i = 0, left = 3600, ended = false;
   const draw = () => {
     const q = qs[i], sec = S.find(s => s.id === q.sec), isEn = q.sec === 'english';
-    el.innerHTML = `<div class="tw"><div class="crumbs"><a href="#tuwaiq" data-leave>تدريب طويق</a> / اختبار تجريبي</div>
+    el.innerHTML = `<div class="tw"><div class="crumbs"><a href="#exam" data-leave>تدريب الاختبارات</a> / اختبار تجريبي</div>
       <div class="quiz-h"><h2>اختبار تجريبي</h2><span class="mono tw-clock" id="tw-t">${mmss(left)}</span></div>
       <div class="tw-dots">${qs.map((_, k) => `<button data-go="${k}" class="${k === i ? 'on' : ''} ${ans[k] >= 0 ? 'done' : ''}" aria-label="سؤال ${k + 1}">${k + 1}</button>`).join('')}</div>
       <div class="qcard"><div class="qn">سؤال ${AR(i + 1)} من ${AR(qs.length)} · ${esc(sec.title)}</div><h3 ${isEn ? 'dir="ltr" style="text-align:left"' : ''}>${esc(q.q)}</h3>
@@ -114,11 +114,11 @@ function mock(el){
     qs.forEach((q, k) => { by[q.sec] = by[q.sec] || { n: 0, ok: 0 }; by[q.sec].n++; if(ans[k] === q.a){ by[q.sec].ok++; score++; } else wrong.push({ q, j: ans[k] }); });
     const pct = Math.round(score / qs.length * 100); saveBest('mock', pct);
     const weak = S.filter(s => by[s.id] && by[s.id].ok / by[s.id].n < .7);
-    el.innerHTML = `<div class="tw"><div class="crumbs"><a href="#tuwaiq">تدريب طويق</a> / نتيجة الاختبار التجريبي</div>
-      <div class="qcard tw-res"><div class="score">${AR(score)}/${AR(qs.length)}</div><p>${AR(pct)}٪ · ${pct >= 80 ? 'مستواك ممتاز، الله يوفقك بكره 💪' : pct >= 60 ? 'قريب، ركّز على الأقسام الضعيفة تحت.' : 'تحتاج تدريب أكثر على الأقسام تحت.'}</p>
+    el.innerHTML = `<div class="tw"><div class="crumbs"><a href="#exam">تدريب الاختبارات</a> / نتيجة الاختبار التجريبي</div>
+      <div class="qcard tw-res"><div class="score">${AR(score)}/${AR(qs.length)}</div><p>${AR(pct)}٪ · ${pct >= 80 ? 'مستواك ممتاز، الله يوفقك 💪' : pct >= 60 ? 'قريب، ركّز على الأقسام الضعيفة تحت.' : 'تحتاج تدريب أكثر على الأقسام تحت.'}</p>
         <div class="tw-bars">${S.map(s => { const r = by[s.id] || { n: 0, ok: 0 }, p = r.n ? Math.round(r.ok / r.n * 100) : 0; return `<div><span>${s.icon} ${esc(s.title)}</span><div class="meter"><i style="width:${p}%"></i></div><span class="mono">${AR(r.ok)}/${AR(r.n)}</span></div>`; }).join('')}</div>
-        ${weak.length ? `<p>ركّز على: ${weak.map(s => `<a href="#tuwaiq/${s.id}">${esc(s.title)}</a>`).join('، ')}</p>` : ''}
-        <div class="row" style="justify-content:center"><button class="btn pri" data-again>اختبار جديد</button><a class="btn" href="#tuwaiq">كل الأقسام</a></div></div>
+        ${weak.length ? `<p>ركّز على: ${weak.map(s => `<a href="#exam/${s.id}">${esc(s.title)}</a>`).join('، ')}</p>` : ''}
+        <div class="row" style="justify-content:center"><button class="btn pri" data-again>اختبار جديد</button><a class="btn" href="#exam">كل الأقسام</a></div></div>
       ${review(wrong)}</div>`;
     el.querySelector('[data-again]').onclick = () => mock(el);
   };

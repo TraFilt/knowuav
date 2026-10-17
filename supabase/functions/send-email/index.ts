@@ -72,6 +72,28 @@ function promo(d: Record<string, any>, it: Record<string, any>): Mail {
   };
 }
 
+// announcement of the exam-practice section, to every account (sent in batches from the admin panel)
+function exam(d: Record<string, any>, it: Record<string, any>): Mail {
+  const name = first(it.name);
+  const unsub = `${SITE}/unsubscribe?t=${encodeURIComponent(it.token || "")}`;
+  const li = (t: string) => `<tr><td style="padding:5px 0;color:#cfc9b8;font-size:15px">✔️ ${t}</td></tr>`;
+  const html = shell(`${name ? name + "، " : ""}جاهز لاختبار الدرونات؟ 🎯`,
+    p("أضفنا في <b style=\"color:#f2ead2\">Know UAV</b> قسم جديد اسمه <b style=\"color:#f2ead2\">«تدريب الاختبارات»</b>، يغطي الجوانب اللي تجي عادة في اختبار القبول النظري لمجال الدرونات:") +
+    `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:4px 0 12px">${li("قدرات كمية ومنطق")}${li("قدرات مكانية")}${li("إنجليزي: مفردات الطيران وفهم المقروء")}${li("أساسيات الدرون")}${li("تركيز وانتباه")}</table>` +
+    p("كل سؤال معه شرح، ولو غلطت يوضح لك ليش غلطت وكيف تحلها. وفيه اختبار تجريبي كامل: ٦٠ سؤال في ساعة.") +
+    `<div style="margin:6px 0 14px;padding:14px 16px;border:1px solid #ff8f4588;border-radius:12px;background:#0f1511;font-size:14px;line-height:1.8;color:#cfc9b8">
+       <b style="color:#ff8f45">⚠️ تنبيه:</b> ما فيه مصدر رسمي من طويق يحدد معايير الاختبار. الأقسام هذي مبنية على اختبارات طويق السابقة، والأسئلة تدريبية من إعدادنا وليست أسئلة الاختبار الفعلي.</div>` +
+    p("<span style=\"font-size:14px;color:#9aa595\">وتذكّر: الاختبار يمنع أدوات الذكاء الاصطناعي وفتح أي تبويب ثاني، فتدرّب الحين واعتمد على نفسك وقت الاختبار. بالتوفيق 🤍</span>"),
+    { href: `${SITE}/app#exam`, label: "ابدأ التدريب" });
+  const foot = `<p style="text-align:center;font-family:Tahoma,Arial,sans-serif;font-size:12px;color:#6a7568;margin:14px 0 0">وصلك هذا الإيميل لأنك مسجّل في knowuav.com · <a href="${unsub}" style="color:#6a7568">إلغاء الاشتراك في الرسائل</a></p>`;
+  return {
+    to: it.email,
+    subject: "جاهز لاختبار الدرونات؟ تدرّب على الأقسام الحين 🎯",
+    html: html.replace("</td></tr></table></body>", foot + "</td></tr></table></body>"),
+    headers: { "List-Unsubscribe": `<${unsub}>, <mailto:${REPLY}?subject=unsubscribe>` },
+  };
+}
+
 function build(d: Record<string, any>): Mail[] {
   const name = first(d.name);
   switch (d.type) {
@@ -107,6 +129,8 @@ function build(d: Record<string, any>): Mail[] {
       });
       return out;
     }
+    case "exam":
+      return (Array.isArray(d.items) ? d.items : []).slice(0, 100).map((it: Record<string, any>) => exam(d, it));
     case "promo":
       return (Array.isArray(d.items) ? d.items : []).slice(0, 100).map((it: Record<string, any>) => promo(d, it));
     case "rejected":
@@ -132,7 +156,7 @@ Deno.serve(async (req) => {
   const mails = build(d).filter((m) => m.to);
   const res: string[] = [];
   // promo batches go through Resend's batch endpoint: one request for up to 100 emails (stays under the rate limit)
-  if (RESEND && d.type === "promo" && mails.length) {
+  if (RESEND && (d.type === "promo" || d.type === "exam") && mails.length) {
     const r = await fetch("https://api.resend.com/emails/batch", {
       method: "POST",
       headers: { Authorization: "Bearer " + RESEND, "content-type": "application/json" },

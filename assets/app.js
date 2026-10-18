@@ -5,6 +5,7 @@ const S = { session:null, user:null, profile:null, settings:{}, catalog:[], leve
 const access = () => !!(S.profile && !S.profile.blocked && S.profile.active_until && new Date(S.profile.active_until) > new Date());
 const fmtDate = d => new Date(d).toLocaleDateString('ar-SA-u-ca-gregory', {year:'numeric', month:'long', day:'numeric'});
 let player = null, quizTimer = null;
+const PAY_PAUSED = true; // payments paused by the owner
 
 // ---------------- boot ----------------
 // NOTE: never await Supabase calls inside onAuthStateChange — it holds the auth lock and deadlocks. Defer with setTimeout.
@@ -424,6 +425,12 @@ function vPay(){
   const el = $('#v-pay'), st = S.settings, price = priceInfo(st).now;
   if(S.profile.blocked){ el.innerHTML = statusCard(); return; }
   if(access()){ el.innerHTML = `<div class="card status"><div><div class="eyebrow">حسابك مفعّل</div><h2>كل شي مفتوح لك</h2><p>حسابك مفعّل، وكل الدروس والاختبارات والمحاكي متاحة لك.</p></div><a class="btn pri" href="#home">إلى الدروس</a></div>`; return; }
+  // payment paused: no bank details, no receipt upload
+  if(PAY_PAUSED){ el.innerHTML = `<div class="sec-h"><div><div class="eyebrow">تفعيل الحساب</div><h2>الدفع متوقف مؤقتاً</h2></div></div>
+    <div class="card pay-pause"><p><b>⚠️ تنبيه:</b> تم إيقاف الدفع في الوقت الحالي.</p>
+      <p>لاحظنا إن بعض الناس يحسبون إن أسئلة التدريب في الموقع هي نفس أسئلة الاختبار النظري الخاص بمعسكر طويق، وهذا غير صحيح. الأسئلة من إعداد Know UAV للتدريب على القدرات العامة بالدرون فقط، وليس لها أي علاقة بالاختبار.</p>
+      <p>عشان ما يدفع أحد على هذا الأساس، أوقفنا الدفع لين إشعار ثاني. والمحتوى المجاني متاح لك كالمعتاد.</p>
+      <div class="row" style="margin-top:12px"><a class="btn pri" href="#home">إلى الدروس</a><a class="btn" href="#sim">المحاكي</a></div></div>`; return; }
   const rows = [['البنك', st.bank_name], ['اسم صاحب الحساب', st.account_name], ['الآيبان IBAN', st.iban], ['STC Pay', st.stcpay]].filter(r => r[1]);
   el.innerHTML = `<div class="sec-h"><div><div class="eyebrow">تفعيل الحساب</div><h2>فعّل حسابك بـ <span id="pay-ph">${priceHTML(st)}</span></h2><p>دفعة واحدة فقط. حوّل المبلغ، ارفع الإيصال، ويتفعّل حسابك مباشرة.</p></div></div>
   <div class="pay">

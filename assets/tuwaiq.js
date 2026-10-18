@@ -26,7 +26,7 @@ function home(el){
   stop();
   const S = window.TW_SECTIONS, b = best(), total = S.reduce((n, s) => n + s.qs.length, 0);
   el.innerHTML = `<div class="tw">
-    <div class="tw-warn">⚠️ <b>تنبيه:</b> هذي الأسئلة من إعداد Know UAV للتدريب على القدرات العامة فقط، وليس لها أي علاقة باختبار طويق، ولا هي مأخوذة منه أو من أي اختبار رسمي.</div>
+    <div class="tw-warn">⚠️ <b>تنبيه:</b> هذي الأسئلة من إعداد Know UAV للتدريب على القدرات العامة بالدرون فقط، وليس لها أي علاقة باختبار طويق، ولا هي مأخوذة منه أو من أي اختبار رسمي.</div>
     <div class="tw-hero"><div class="eyebrow">تدريب على القدرات العامة</div><h1>التدريب على النظري</h1>
       <p>${AR(total)} سؤال تدريبي في ٥ أقسام، مع شرح لكل إجابة وسبب الخطأ لو غلطت. وفي الآخر اختبار تجريبي: ٦٠ سؤال في ساعة.</p>
       <div class="tw-facts"><span>🔢 كمي ومنطق</span><span>🧭 مكاني</span><span>🔤 إنجليزي</span><span>🛩️ أساسيات الدرون</span><span>⚡ تركيز</span></div>

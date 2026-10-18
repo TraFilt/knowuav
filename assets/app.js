@@ -134,7 +134,7 @@ function tuwaiqNote(){
   const d = document.createElement('div'); d.className = 'wel'; d.setAttribute('role', 'dialog'); d.setAttribute('aria-modal', 'true');
   d.innerHTML = `<div class="wel-box"><button class="wel-x" aria-label="إغلاق">✕</button>
     <div class="wel-ic">🎯</div><h2>عندك اختبار قبول في الدرونات؟</h2>
-    <p>جهّزنا لك تدريب مجاني على الأسئلة العامة في مجال الطائرات بدون طيار:</p>
+    <p>جهّزنا لك تدريب على القدرات العامة في مجال الطائرات بدون طيار. <span class="note">(للتدريب فقط، وليس له علاقة باختبار طويق)</span></p>
     <a class="wel-opt" href="#exam"><span class="i">📝</span><span><b>تدريب على ٥ أقسام</b><small>١٠ أسئلة مجاناً من كل قسم · مع شرح الخطأ</small></span><span class="wel-go">←</span></a>
     <a class="wel-opt" href="#exam/mock"><span class="i">⏱️</span><span><b>اختبار تجريبي كامل</b><small>٦٠ سؤال في ٦٠ دقيقة مع نتيجة لكل قسم</small></span><span class="wel-go">←</span></a></div>`;
   d.onclick = e => { if(e.target === d || e.target.closest('.wel-x') || e.target.closest('.wel-opt')) d.remove(); };

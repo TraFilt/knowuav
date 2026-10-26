@@ -5,7 +5,7 @@ const S = { session:null, user:null, profile:null, settings:{}, catalog:[], leve
 const access = () => !!(S.profile && !S.profile.blocked && S.profile.active_until && new Date(S.profile.active_until) > new Date());
 const fmtDate = d => new Date(d).toLocaleDateString('ar-SA-u-ca-gregory', {year:'numeric', month:'long', day:'numeric'});
 let player = null, quizTimer = null;
-const PAY_PAUSED = true; // payments paused by the owner
+const PAY_PAUSED = false; // payments paused by the owner
 
 // ---------------- boot ----------------
 // NOTE: never await Supabase calls inside onAuthStateChange — it holds the auth lock and deadlocks. Defer with setTimeout.
